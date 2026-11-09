@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f3ed">
+  <meta name="transfer-token" content="{{ transfer_token }}">
+  <meta name="share-address" content="{{ share_address }}">
+  <meta name="admin-enabled" content="{{ is_admin|yesno:'1,0' }}">
+  <title>本地收件箱 · 电脑手机双向传文件</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f3ed;
+      --ink: #17251f;
+      --muted: #65736c;
+      --line: #d9ded7;
+      --green: #1f5545;
+      --green-deep: #173f35;
+      --mint: #d8e9d9;
+      --orange: #e97846;
+      --white: #fffefa;
+      --shadow: 0 18px 42px rgba(32, 53, 42, .10), 0 2px 8px rgba(32, 53, 42, .05);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--paper); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 78% 2%, rgba(216, 233, 217, .62), transparent 30rem),
+        var(--paper);
+      font-family: "Microsoft YaHei UI", "PingFang SC", "Noto Sans CJK SC", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, a:focus-visible, .dropzone:focus-within {
+      outline: 3px solid #d87945;
+      outline-offset: 4px;
+    }
+    ::selection { color: #fffefa; background: #1f5545; }
+    .page { max-width: 1160px; margin: 0 auto; padding: 0 34px 50px; }
+    .topbar {
+      height: 82px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(87, 105, 94, .18);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
+    .brand-mark {
+      position: relative; width: 34px; height: 34px; border-radius: 11px;
+      background: var(--green); display: grid; place-items: center;
+    }
+    .brand-mark::before, .brand-mark::after {
+      content: ""; position: absolute; border: 1.5px solid #d8e9d9; border-radius: 50%;
+      width: 15px; height: 15px;
+    }
+    .brand-mark::before { transform: translate(-4px, -1px); }
+    .brand-mark::after { transform: translate(4px, 1px); background: var(--green); }
+    .brand-name { font-size: 15px; font-weight: 750; letter-spacing: -.025em; }
+    .top-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #47a873; box-shadow: 0 0 0 4px rgba(71, 168, 115, .12); }
+    .local-pill { display: flex; align-items: center; gap: 9px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,254,250,.55); }
+    .hero {
+      display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 38px;
+      align-items: center; padding: 54px 0 40px;
+    }
+    .hero-copy { max-width: 650px; }
+    h1 {
+      margin: 0; max-width: 650px; font-size: clamp(40px, 5.1vw, 64px);
+      line-height: 1.12; letter-spacing: -.055em; font-weight: 760;
+    }
+    .title-accent { color: var(--green); }
+    .lead { max-width: 500px; margin: 19px 0 27px; color: #526159; font-size: 16px; line-height: 1.85; }
+    .connection-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .url-chip {
+      min-height: 42px; display: inline-flex; align-items: center; gap: 9px;
+      padding: 0 12px; border: 1px solid var(--line); border-radius: 10px;
+      background: rgba(255,254,250,.8); color: #425149; font: 12px/1.4 "Cascadia Code", Consolas, monospace;
+    }
+    .copy-button {
+      min-height: 42px; display: inline-flex; align-items: center; gap: 8px; padding: 0 13px;
+      border: 0; border-radius: 10px; background: var(--green); color: white; cursor: pointer;
+      font-size: 13px; font-weight: 700; transition: background .18s ease, transform .18s ease;
+    }
+    .copy-button:hover { background: var(--green-deep); transform: translateY(-1px); }
+    .copy-button svg, .url-chip svg { width: 15px; height: 15px; flex: 0 0 auto; }
+    .network-select-wrap { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; color: var(--muted); font-size: 11px; }
+    .network-select-wrap select { max-width: 250px; height: 38px; padding: 0 28px 0 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,254,250,.8); color: #35463c; font-size: 11px; }
+    .network-select-wrap select:focus { outline: 2px solid rgba(31,85,69,.22); border-color: var(--green); }
+    .network-hint { flex-basis: 100%; margin: -5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .qr-stage {
+      position: relative; padding: 24px 25px 19px; border-radius: 21px;
+      background: var(--white); box-shadow: var(--shadow); border: 1px solid rgba(215,220,212,.8);
+      text-align: center; isolation: isolate;
+    }
+    .qr-stage::before {
+      content: ""; position: absolute; z-index: -1; width: 86px; height: 86px; right: -13px; top: -13px;
+      border: 1px solid rgba(31,85,69,.20); border-radius: 22px; transform: rotate(9deg);
+    }
+    .qr-label { display: flex; justify-content: space-between; align-items: center; margin: 0 1px 15px; text-align: left; }
+    .qr-label strong { font-size: 14px; letter-spacing: -.01em; }
+    .qr-label span { color: var(--muted); font-size: 11px; }
+    .qr-status { display: inline-flex; align-items: center; gap: 7px; color: #64736a; font-size: 11px; white-space: nowrap; }
+    .qr-status .live-dot { width: 7px; height: 7px; box-shadow: none; background: #a2ada4; }
+    .qr-status.is-online .live-dot { background: #47a873; box-shadow: 0 0 0 3px rgba(71,168,115,.12); }
+    .qr-frame { width: 206px; height: 206px; display: grid; place-items: center; margin: 0 auto; padding: 7px; border: 1px solid #e9ece5; border-radius: 14px; background: white; }
+    .qr-frame img { width: 100%; height: 100%; image-rendering: pixelated; }
+    .qr-error { display: none; padding: 20px; color: #a44930; font-size: 13px; }
+    .scan-hint { margin: 14px 0 0; color: #66736b; font-size: 12px; line-height: 1.65; }
+    .scan-hint b { color: var(--green); font-weight: 700; }
+    .qr-actions { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 13px; min-height: 34px; }
+    .refresh-qr-button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 11px; border: 1px solid #cbd8cc; border-radius: 8px; background: #f7faf5; color: var(--green); cursor: pointer; font-size: 11px; font-weight: 700; }
+    .refresh-qr-button:hover { border-color: var(--green); background: #edf4ec; }
+    .refresh-qr-button:disabled { opacity: .55; cursor: wait; }
+    .refresh-qr-button svg { width: 14px; height: 14px; }
+    .refresh-qr-status { color: var(--muted); font-size: 10px; }
+    .how-to {
+      display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 16px;
+      padding: 18px 22px; margin: 0 0 46px; border-radius: 14px;
+      background: #e8eee6; color: #35473e;
+    }
+    .step { display: flex; align-items: center; gap: 11px; font-size: 13px; font-weight: 650; }
+    .step-index { width: 28px; height: 28px; border: 1px solid #b5c9b8; border-radius: 50%; display: grid; place-items: center; color: var(--green); font: 12px "Cascadia Code", Consolas, monospace; }
+    .step-arrow { color: #879a8c; font-size: 16px; }
+    .lower-grid { display: grid; grid-template-columns: minmax(0, 1.13fr) minmax(300px, .87fr); gap: 54px; align-items: start; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 19px; }
+    h2 { margin: 0; font-size: 21px; letter-spacing: -.035em; }
+    .section-note { color: var(--muted); font-size: 12px; }
+    .dropzone {
+      position: relative; min-height: 185px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 23px; border: 1.5px dashed #9daf9f; border-radius: 15px;
+      background: rgba(255,254,250,.54); cursor: pointer; text-align: center;
+      transition: border .2s ease, background .2s ease, transform .2s ease;
+    }
+    .dropzone:hover, .dropzone.is-over { border-color: var(--green); background: #eef5eb; }
+    .dropzone.is-over { transform: scale(1.01); }
+    .upload-symbol { width: 44px; height: 44px; display: grid; place-items: center; margin-bottom: 12px; border-radius: 13px; background: var(--mint); color: var(--green); }
+    .upload-symbol svg { width: 22px; height: 22px; }
+    .drop-title { font-size: 14px; font-weight: 750; }
+    .drop-sub { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .drop-sub em { color: var(--green); font-style: normal; font-weight: 700; }
+    #file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+    .queue { margin-top: 12px; }
+    .queue-item { display: flex; align-items: center; gap: 11px; min-height: 55px; padding: 8px 11px; border-bottom: 1px solid #e1e5dd; }
+    .file-glyph { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: #e8eee6; color: var(--green); flex: 0 0 auto; }
+    .file-glyph svg { width: 17px; height: 17px; }
+    .queue-copy { min-width: 0; flex: 1; }
+    .queue-name { overflow: hidden; color: #28382f; font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .queue-size { margin-top: 3px; color: #728076; font-size: 11px; }
+    .remove-file { width: 29px; height: 29px; border: 0; border-radius: 8px; background: transparent; color: #758078; cursor: pointer; font-size: 18px; }
+    .remove-file:hover { background: #e8eee6; color: var(--ink); }
+    .upload-actions { display: flex; align-items: center; gap: 14px; margin-top: 15px; }
+    .send-button {
+      min-height: 45px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 18px;
+      border: 0; border-radius: 10px; background: var(--green); color: white; cursor: pointer;
+      font-size: 13px; font-weight: 750; transition: background .18s ease, transform .18s ease;
+    }
+    .send-button:hover:not(:disabled) { background: var(--green-deep); transform: translateY(-1px); }
+    .send-button:disabled { background: #a7b5ab; cursor: not-allowed; }
+    .send-button svg { width: 16px; height: 16px; }
+    .inbox { padding-top: 1px; }
+    .inbox-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 19px; }
+    .count { color: var(--muted); font: 12px "Cascadia Code", Consolas, monospace; }
+    .file-list { border-top: 1px solid var(--line); }
+    .empty-state { padding: 30px 2px; color: #78837c; font-size: 13px; line-height: 1.7; }
+    .received-file { display: flex; align-items: center; gap: 11px; min-height: 62px; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; }
+    .received-file:hover .queue-name { color: var(--green); }
+    .received-file .queue-size { display: inline-flex; align-items: center; gap: 7px; }
+    .received-file .queue-size span { color: #94a097; }
+    .help-note { display: flex; gap: 10px; margin-top: 22px; padding: 13px 14px; border-radius: 11px; background: #e8eee6; color: #54645a; font-size: 12px; line-height: 1.65; }
+    .help-note svg { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 1px; color: var(--green); }
+    .footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 47px; padding-top: 17px; border-top: 1px solid var(--line); color: #7b867e; font-size: 11px; }
+    .mobile-intro { display: none; }
+    .security-panel {
+      margin: 0 0 42px; padding: 22px 24px 20px; border: 1px solid var(--line);
+      border-radius: 15px; background: rgba(255,254,250,.66);
+    }
+    .security-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .security-head p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+    .online-state { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .online-state .live-dot { flex: 0 0 auto; background: #9aa69d; box-shadow: none; }
+    .online-state.is-online .live-dot { background: #47a873; box-shadow: 0 0 0 4px rgba(71,168,115,.12); }
+    .security-grid { display: grid; grid-template-columns: minmax(230px,.8fr) minmax(300px,1.2fr); gap: 30px; align-items: start; }
+    .security-form { display: grid; grid-template-columns: 1fr auto; gap: 9px; align-items: end; }
+    .security-form label { grid-column: 1 / -1; color: #45564b; font-size: 12px; font-weight: 700; }
+    .security-form input, .pair-form input {
+      min-width: 0; height: 42px; padding: 0 12px; border: 1px solid #cbd5cb; border-radius: 9px;
+      background: #fffefa; color: var(--ink); outline: none;
+    }
+    .security-form input:focus, .pair-form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(31,85,69,.12); }
+    .security-help { grid-column: 1 / -1; min-height: 18px; color: var(--muted); font-size: 11px; }
+    .device-list { border-top: 1px solid var(--line); }
+    .device-row { display: flex; align-items: center; gap: 10px; min-height: 43px; border-bottom: 1px solid #e4e8e1; }
+    .device-row .live-dot { width: 7px; height: 7px; flex: 0 0 auto; background: #a7b0a9; box-shadow: none; }
+    .device-row.is-online .live-dot { background: #47a873; box-shadow: 0 0 0 3px rgba(71,168,115,.11); }
+    .device-name { flex: 1; color: #314138; font-size: 12px; font-weight: 650; }
+    .device-state { color: var(--muted); font-size: 11px; }
+    .device-remove { border: 0; background: transparent; color: #8a5949; cursor: pointer; font-size: 11px; }
+    .device-empty { padding: 12px 0; color: var(--muted); font-size: 12px; }
+    .pair-gate {
+      max-width: 480px; margin: 7px auto 28px; padding: 23px 21px 20px;
+      border-radius: 16px; background: var(--green-deep); color: white;
+      box-shadow: 0 14px 30px rgba(16,35,26,.16);
+    }
+    .pair-gate h2 { color: white; font-size: 20px; }
+    .pair-gate p { margin: 8px 0 18px; color: #d0e1d6; font-size: 13px; line-height: 1.6; }
+    .pair-form { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 9px; }
+    .pair-form input { height: 46px; border-color: rgba(255,255,255,.45); font-size: 18px; letter-spacing: .18em; }
+    .pair-form .send-button { min-height: 46px; background: #f1a16c; color: #342218; }
+    .pair-form .send-button:hover { background: #ffb181; }
+    .pair-status { min-height: 19px; margin-top: 10px; color: #e9c5a8; font-size: 12px; }
+    .mobile-mode:not(.paired-mode) .lower-grid { display: none; }
+    body.mobile-mode.paired-mode .pair-gate { display: none; }
+    .preview-dialog {
+      width: min(92vw, 850px); max-width: 850px; max-height: 88vh; padding: 22px;
+      border: 1px solid var(--line); border-radius: 16px; background: var(--white); color: var(--ink);
+      box-shadow: 0 24px 80px rgba(16,35,26,.3);
+    }
+    .preview-dialog::backdrop { background: rgba(17,31,24,.68); }
+    .preview-close { float: right; width: 34px; height: 34px; border: 0; border-radius: 9px; background: #e9eee7; color: var(--ink); cursor: pointer; font-size: 21px; }
+    .preview-name { margin: 4px 44px 16px 0; color: #536159; font-size: 13px; overflow-wrap: anywhere; }
+    .preview-content { display: grid; place-items: center; min-height: 150px; }
+    .preview-content img, .preview-content video { display: block; max-width: 100%; max-height: 68vh; border-radius: 8px; object-fit: contain; }
+    .preview-content iframe { width: 100%; height: min(68vh, 720px); border: 0; border-radius: 8px; background: #fff; }
+    .preview-content audio { width: min(100%, 520px); }
+    .file-actions { display: flex; gap: 10px; align-items: center; }
+    .preview-trigger, .download-link { border: 0; background: transparent; color: var(--green); text-decoration: none; cursor: pointer; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .replace-trigger { border: 0; background: transparent; color: #5e6d61; cursor: pointer; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .replace-trigger:hover { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+    .preview-trigger:hover, .download-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .delete-trigger { border: 0; background: transparent; color: #9a5140; cursor: pointer; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .delete-trigger:hover { color: #713325; text-decoration: underline; text-underline-offset: 3px; }
+    .rename-dialog { width: min(92vw, 440px); padding: 24px; border: 1px solid var(--line); border-radius: 15px; background: var(--white); color: var(--ink); box-shadow: 0 24px 80px rgba(16,35,26,.3); }
+    .rename-dialog::backdrop { background: rgba(17,31,24,.55); }
+    .rename-dialog h2 { margin: 0 0 8px; font-size: 19px; }
+    .rename-dialog p { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+    .rename-dialog input { width: 100%; height: 44px; padding: 0 12px; border: 1px solid #cbd5cb; border-radius: 9px; }
+    .rename-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+    .plain-button { min-height: 40px; padding: 0 13px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: #4d5c52; cursor: pointer; font-size: 12px; }
+    .function-nav {
+      display: flex; align-items: center; gap: 5px; margin: 19px 0 2px;
+      padding: 5px; width: fit-content; border: 1px solid #dce2d9; border-radius: 12px;
+      background: rgba(255,254,250,.72);
+    }
+    .function-tab {
+      position: relative; min-height: 40px; display: inline-flex; align-items: center; gap: 9px; padding: 0 15px;
+      border: 0; border-radius: 8px; background: transparent; color: #647269;
+      cursor: pointer; font-size: 13px; font-weight: 650; transition: background .18s ease, color .18s ease;
+    }
+    .function-tab svg { width: 16px; height: 16px; }
+    .function-tab:hover { color: var(--green); background: #eef3eb; }
+    .function-tab[aria-selected="true"] { color: #fff; background: var(--green); }
+    .function-tab[aria-selected="true"]:hover { color: #fff; background: var(--green-deep); }
+    .tab-compact { display: none; }
+    .nav-badge { min-width: 18px; padding: 2px 5px; border-radius: 99px; background: rgba(255,255,255,.18); font: 10px "Cascadia Code", Consolas, monospace; text-align: center; }
+    .transfer-center { margin: -20px 0 40px; padding: 19px 21px; border: 1px solid #d7e0d6; border-radius: 14px; background: #e8eee6; }
+    .transfer-center-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 13px; }
+    .transfer-center-head h2 { font-size: 16px; }
+    .transfer-center-head p { margin: 4px 0 0; color: #59685e; font-size: 11px; }
+    .history-shortcut, .history-refresh { border: 0; background: transparent; color: var(--green); cursor: pointer; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .history-shortcut:hover, .history-refresh:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .transfer-active { display: grid; grid-template-columns: 36px minmax(0,1fr) auto; gap: 10px 12px; align-items: center; }
+    .transfer-direction-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: #d4e3d5; color: var(--green); }
+    .transfer-direction-icon svg { width: 19px; height: 19px; }
+    .transfer-active-copy { min-width: 0; display: grid; gap: 3px; }
+    .transfer-active-copy strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .transfer-active-copy span { color: #64736a; font-size: 11px; }
+    .transfer-state { padding: 5px 8px; border-radius: 7px; background: rgba(255,255,255,.75); color: #617166; font-size: 10px; white-space: nowrap; }
+    .transfer-state.is-active { background: #d5ebdc; color: #24633f; }
+    .transfer-state.is-error { background: #f3e1db; color: #8a4433; }
+    .unified-progress-track { grid-column: 2 / 4; height: 4px; overflow: hidden; border-radius: 99px; background: #d2ddd2; }
+    .unified-progress-fill { width: 0; height: 100%; border-radius: inherit; background: #398b5c; }
+    .history-view { max-width: 850px; padding: 34px 0 10px; }
+    .history-intro { margin: -8px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .transfer-history-list { border-top: 1px solid var(--line); }
+    .transfer-history-row { display: grid; grid-template-columns: 104px minmax(0,1fr) auto; gap: 12px; align-items: center; min-height: 66px; border-bottom: 1px solid var(--line); }
+    .transfer-direction-label { color: var(--green); font-size: 11px; font-weight: 750; white-space: nowrap; }
+    .transfer-history-copy { min-width: 0; display: grid; gap: 4px; }
+    .transfer-history-copy strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .transfer-history-copy span, .transfer-history-meta { color: var(--muted); font-size: 10px; }
+    .transfer-history-meta { display: grid; justify-items: end; gap: 4px; white-space: nowrap; }
+    .history-status.is-active { color: #287447; }
+    .history-status.is-error { color: #9a5140; }
+    .file-view { max-width: 850px; padding: 34px 0 10px; }
+    .file-view .file-list { border-top: 1px solid var(--line); }
+    .file-view .received-file { min-height: 72px; }
+    .preview-hint { margin: -8px 0 15px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .help-view { max-width: 940px; padding: 36px 0 12px; }
+    .help-title { margin: 0; font-size: clamp(30px,4vw,42px); letter-spacing: -.045em; }
+    .help-lead { max-width: 650px; margin: 10px 0 27px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+    .help-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 42px; }
+    .help-section { padding: 19px 0 20px; border-top: 1px solid var(--line); }
+    .help-section h2 { margin: 0 0 9px; font-size: 16px; }
+    .help-section p, .help-section li { color: #59675f; font-size: 13px; line-height: 1.8; }
+    .help-section p { margin: 0; }
+    .help-section ul { margin: 7px 0 0; padding-left: 19px; }
+    .help-section li + li { margin-top: 3px; }
+    .help-code { display: inline-block; padding: 2px 6px; border-radius: 5px; background: #e8eee6; color: #315442; font: 12px "Cascadia Code", Consolas, monospace; }
+    .github-link { display: inline-flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 9px; color: var(--green); text-decoration: none; font-size: 13px; font-weight: 700; }
+    .github-link:hover { border-color: #9daf9f; background: #eef3eb; }
+    .github-link svg { width: 18px; height: 18px; }
+    .mobile-security { display: none; }
+    .mobile-security-card { max-width: 500px; margin: 22px auto; padding: 21px; border: 1px solid var(--line); border-radius: 15px; background: var(--white); }
+    .mobile-security-card h2 { margin-bottom: 16px; }
+    .mobile-connection { display: flex; align-items: center; gap: 10px; padding: 13px 14px; border-radius: 10px; background: #e8eee6; color: #43544a; font-size: 13px; }
+    .mobile-connection .live-dot { flex: 0 0 auto; }
+    .mobile-security-card p { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .panel-hidden { display: none !important; }
+    body.mobile-mode:not(.paired-mode) .function-tab[data-view="files"],
+    body.mobile-mode:not(.paired-mode) .function-tab[data-view="history"],
+    body.mobile-mode:not(.paired-mode) .function-tab[data-view="security"] { display: none; }
+    .toast { position: fixed; z-index: 5; left: 50%; bottom: 24px; transform: translate(-50%, 15px); padding: 11px 16px; border-radius: 11px; background: #203f34; color: white; box-shadow: 0 12px 28px rgba(16,42,31,.23); font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+    .toast.visible { opacity: 1; transform: translate(-50%, 0); }
+    .mobile-only { display: none; }
+    body.mobile-mode .desktop-only { display: none !important; }
+    body.mobile-mode .mobile-only { display: block; }
+    body.mobile-mode .hero { display: block; padding: 28px 0 25px; }
+    body.mobile-mode .hero-copy { max-width: none; }
+    body.mobile-mode h1 { max-width: 520px; font-size: clamp(35px, 9vw, 48px); }
+    body.mobile-mode .lead { margin: 12px 0 0; font-size: 14px; }
+    body.mobile-mode .lower-grid { display: block; }
+    body.mobile-mode .inbox, body.mobile-mode .how-to { display: none; }
+    body.mobile-mode .security-panel { display: none !important; }
+    body.mobile-mode .mobile-security { display: block; }
+    body.mobile-mode .topbar { height: 68px; }
+    body.mobile-mode .page { padding: 0 19px 34px; }
+    body.mobile-mode .footer { margin-top: 31px; }
+    @media (max-width: 850px) {
+      .page { max-width: 700px; padding-right: 24px; padding-left: 24px; }
+      .hero { grid-template-columns: minmax(0, 1fr) 300px; gap: 23px; padding-top: 43px; }
+      .qr-stage { padding: 19px 17px 16px; }
+      .qr-frame { width: 190px; height: 190px; }
+      h1 { font-size: clamp(38px, 6vw, 53px); }
+      .lower-grid { grid-template-columns: 1fr; gap: 38px; }
+      .security-grid { grid-template-columns: 1fr; gap: 17px; }
+      .help-grid { grid-template-columns: 1fr; }
+      .how-to { margin-bottom: 37px; }
+      .transfer-center { margin-top: -13px; }
+    }
+    @media (max-width: 620px) {
+      .page { padding: 0 19px calc(92px + env(safe-area-inset-bottom)); }
+      .topbar { height: 69px; }
+      .top-meta { gap: 7px; font-size: 11px; }
+      .local-pill { padding: 8px 10px; }
+      .hero { display: flex; flex-direction: column; align-items: stretch; gap: 24px; padding: 36px 0 29px; }
+      h1 { font-size: clamp(39px, 11vw, 54px); }
+      .lead { font-size: 14px; line-height: 1.75; margin: 13px 0 19px; }
+      .url-chip { max-width: calc(100vw - 135px); overflow: hidden; font-size: 10px; }
+      .qr-stage { max-width: 365px; width: 100%; align-self: center; }
+      .qr-frame { width: 204px; height: 204px; }
+      .how-to { grid-template-columns: 1fr; gap: 11px; padding: 16px 17px; margin-bottom: 34px; }
+      .step-arrow { display: none; }
+      .lower-grid { gap: 34px; }
+      .section-head { align-items: flex-start; flex-direction: column; gap: 6px; }
+      .security-panel { padding: 18px 16px; margin-bottom: 30px; }
+      .security-head { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .transfer-center { margin: -10px 0 30px; padding: 16px 14px; }
+      .transfer-center-head { align-items: flex-start; }
+      .transfer-center-head p { max-width: 235px; line-height: 1.5; }
+      .history-view { padding-top: 28px; }
+      .transfer-history-row { grid-template-columns: 78px minmax(0,1fr) auto; gap: 8px; min-height: 66px; }
+      .transfer-direction-label { font-size: 10px; }
+      .transfer-history-meta { font-size: 9px; }
+      .pair-gate { padding: 20px 17px 17px; }
+      .pair-form { grid-template-columns: 1fr; }
+      .preview-dialog { padding: 16px; }
+      .help-view { padding-top: 28px; }
+      .dropzone { min-height: 168px; }
+      .upload-actions { align-items: flex-start; flex-direction: column; gap: 9px; }
+      .send-button { width: 100%; }
+      .footer { flex-direction: column; gap: 5px; }
+      .function-nav {
+        position: fixed; z-index: 10; left: 0; right: 0; bottom: 0;
+        width: 100%; justify-content: stretch; gap: 3px; margin: 0;
+        padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+        border: 0; border-top: 1px solid #dce2d9; border-radius: 0;
+        background: rgba(255,254,250,.97); box-shadow: 0 -8px 22px rgba(30,49,38,.07);
+      }
+      .function-tab { min-width: 0; min-height: 48px; flex: 1; flex-direction: column; justify-content: center; gap: 3px; padding: 3px 4px; font-size: 10px; }
+      .function-tab svg { width: 18px; height: 18px; }
+      .tab-full { display: none; }
+      .tab-compact { display: inline; }
+      .nav-badge { position: absolute; margin: -23px 0 0 25px; min-width: 15px; padding: 1px 4px; }
+      .mobile-security-card { margin: 22px 0; padding: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="本地收件箱首页">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">本地收件箱</span>
+      </a>
+      <div class="top-meta">
+        <span class="local-pill"><i class="live-dot" aria-hidden="true"></i><span>仅在你的网络中传输</span></span>
+      </div>
+    </header>
+
+    <nav class="function-nav" role="tablist" aria-label="功能栏">
+      <button class="function-tab" type="button" role="tab" data-view="send" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"></path></svg>
+        <span class="tab-full">传文件</span><span class="tab-compact">发送</span>
+      </button>
+      <button class="function-tab" type="button" role="tab" data-view="files" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5v-9Z"></path><path d="m3.5 7.8 8.5 4.4 8.5-4.4M12 12.2V21"></path></svg>
+        <span class="tab-full">文件库</span><span class="tab-compact">文件</span> <span class="nav-badge" id="nav-file-count">0</span>
+      </button>
+      <button class="function-tab" type="button" role="tab" data-view="history" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16M4 12h11M4 17h8"></path><circle cx="18" cy="16.5" r="3.5"></circle><path d="M18 14.8v1.9l1.2.8"></path></svg>
+        <span class="tab-full">传输记录</span><span class="tab-compact">记录</span>
+      </button>
+      <button class="function-tab" type="button" role="tab" data-view="security" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3 20 6v5.5c0 4.2-3.1 7.5-8 9.5-4.9-2-8-5.3-8-9.5V6l8-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>
+        <span class="tab-full">设备连接</span><span class="tab-compact">设备</span>
+      </button>
+      <button class="function-tab" type="button" role="tab" data-view="help" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v18H7.5A2.5 2.5 0 0 0 5 22V4.5Z"></path><path d="M5 18a2.5 2.5 0 0 1 2.5-2.5H20M9 7h7M9 10h7"></path></svg>
+        <span class="tab-full">使用说明</span><span class="tab-compact">说明</span>
+      </button>
+    </nav>
+
+    <main>
+      <section class="hero" data-panel="send">
+        <div class="hero-copy">
+          <h1>手机里的文件<br><span class="title-accent">直接到电脑。</span></h1>
+          <p class="lead desktop-only">扫一下码，选好照片或文件。它们通过本地网络传过来，直接保存在这台电脑上。</p>
+          <p class="lead mobile-intro mobile-only">选好要发送的照片或文件，电脑就会在本地文件夹里收到它们。</p>
+          <div class="connection-row desktop-only">
+            <span class="url-chip" id="share-url" title="手机扫码打开的地址">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"></path></svg>
+              <span id="url-text">正在读取局域网地址…</span>
+            </span>
+            <button class="copy-button" id="copy-button" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg>
+              复制地址
+            </button>
+            <label class="network-select-wrap" for="network-select">
+              <span>连接网卡</span>
+              <select id="network-select" aria-label="选择手机连接的网络适配器">
+                <option value="">正在读取网络…</option>
+              </select>
+            </label>
+            <p class="network-hint" id="network-hint">个人热点时选择手机热点对应的 Wi-Fi 地址，再刷新二维码应用。</p>
+          </div>
+        </div>
+        <aside class="qr-stage desktop-only" aria-label="手机扫码上传">
+          <div class="qr-label">
+            <strong>用手机相机扫码</strong>
+            <span class="qr-status" id="qr-status"><i class="live-dot"></i><span>等待连接</span></span>
+          </div>
+          <div class="qr-frame">
+            <img id="qr-image" src="/qr.svg?token={{ transfer_token }}" alt="手机上传页面二维码">
+            <div class="qr-error" id="qr-error">二维码暂时无法显示，请复制地址到手机浏览器。</div>
+          </div>
+          <p class="scan-hint">手机与电脑接入同一局域网<br>也可让电脑开热点，再连接手机</p>
+          <div class="qr-actions">
+            <button class="refresh-qr-button" id="refresh-qr-button" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"></path><path d="M5.6 9a7 7 0 0 1 11.7-2L20 12M4 12l2.7 5a7 7 0 0 0 11.7-2"></path></svg>
+              刷新二维码
+            </button>
+            <span class="refresh-qr-status" id="refresh-qr-status" role="status"></span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="how-to desktop-only" data-panel="send" aria-label="使用步骤">
+        <div class="step"><span class="step-index">01</span><span>手机扫码打开页面</span></div>
+        <span class="step-arrow" aria-hidden="true">→</span>
+        <div class="step"><span class="step-index">02</span><span>选择照片或文件</span></div>
+        <span class="step-arrow" aria-hidden="true">→</span>
+        <div class="step"><span class="step-index">03</span><span>电脑文件夹里查看</span></div>
+      </section>
+
+      <section class="transfer-center" data-panel="send" aria-label="统一传输状态">
+        <div class="transfer-center-head">
+          <div>
+            <h2>传输状态</h2>
+            <p>手机 → 电脑和电脑 → 手机的进度集中显示在这里。</p>
+          </div>
+          <button class="history-shortcut" id="history-shortcut" type="button">查看记录 →</button>
+        </div>
+        <div class="transfer-active">
+          <span class="transfer-direction-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7h12l-3-3m3 3-3 3M17 17H5l3 3m-3-3 3-3"></path></svg>
+          </span>
+          <div class="transfer-active-copy">
+            <strong id="transfer-current-title">暂无传输任务</strong>
+            <span id="transfer-current-detail">完成的文件传输会保存在传输记录中。</span>
+          </div>
+          <span class="transfer-state" id="transfer-current-state" role="status" aria-live="polite">待机</span>
+          <div class="unified-progress-track" id="unified-progress-track" hidden>
+            <div class="unified-progress-fill" id="unified-progress-fill"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="security-panel desktop-only" id="security-panel" data-panel="security">
+        <div class="security-head">
+          <div>
+            <h2>当前连接设备</h2>
+            <p>手机扫码后自动连接；离开页面约 25 秒后会显示为离线。</p>
+          </div>
+          <div class="online-state" id="online-state"><i class="live-dot"></i><span>正在读取设备状态…</span></div>
+        </div>
+        <div>
+          <div class="section-note" style="margin-bottom:8px">在线与最近连接过的设备</div>
+          <div class="device-list" id="device-list"><div class="device-empty">暂时没有连接设备。</div></div>
+        </div>
+      </section>
+
+      <section class="pair-gate mobile-only" id="pair-gate" data-panel="send">
+        <h2>连接到这台电脑</h2>
+        <p>正在使用二维码连接。连接成功后即可选择并发送文件。</p>
+        <div class="pair-status" id="pair-status" role="status">正在连接电脑…</div>
+      </section>
+
+      <section class="mobile-security mobile-only" data-panel="security">
+        <div class="mobile-security-card">
+          <h2>设备连接</h2>
+          <div class="mobile-connection" id="mobile-connection">
+            <i class="live-dot"></i><span id="mobile-connection-text">尚未连接到电脑</span>
+          </div>
+          <p>扫码链接用于识别这台电脑。要断开设备，请在电脑端“设备连接”中操作。</p>
+        </div>
+      </section>
+
+      <section class="lower-grid" data-panel="send">
+        <div class="upload-column">
+          <div class="section-head">
+            <h2 id="upload-heading">发送到这台电脑</h2>
+            <span class="section-note">支持多选 · 单次最多 250 MB</span>
+          </div>
+          <label class="dropzone" id="dropzone" for="file-input">
+            <input id="file-input" type="file" multiple>
+            <span class="upload-symbol" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"></path></svg>
+            </span>
+            <span class="drop-title">点这里选择文件</span>
+            <span class="drop-sub">也可以把文件拖到这里 · <em>照片、视频、文档都可以</em></span>
+          </label>
+          <div class="queue" id="queue" aria-live="polite"></div>
+          <div class="upload-actions">
+            <button class="send-button" id="upload-button" type="button" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"></path></svg>
+              <span>发送文件</span>
+            </button>
+          </div>
+          <div class="help-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5m0-8h.01"></path></svg>
+            <span id="transfer-help-copy">手机上传到电脑；电脑加入文件库的内容，连接手机后可以预览或下载。</span>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="file-view" data-panel="files">
+        <div class="section-head">
+          <h2>文件库</h2>
+          <span class="section-note" id="file-count">0 个文件 · 保存在本机 received 文件夹</span>
+        </div>
+        <p class="preview-hint">可预览图片、PDF、Word（DOCX）、文本和音视频；也可重命名、替换、下载或删除文件。</p>
+        <div class="file-list" id="file-list">
+          <div class="empty-state">还没有收到文件。<br>传过来的文件会显示在这里。</div>
+        </div>
+      </section>
+
+      <section class="history-view" data-panel="history">
+        <div class="section-head">
+          <h2>传输记录</h2>
+          <button class="history-refresh" id="history-refresh" type="button">刷新</button>
+        </div>
+        <p class="history-intro">按时间记录手机上传到电脑、手机从电脑下载的文件。记录保存在本机 SQLite 数据库。</p>
+        <div class="transfer-history-list" id="transfer-history-list">
+          <div class="empty-state">还没有传输记录。完成一次上传或下载后，记录会显示在这里。</div>
+        </div>
+      </section>
+
+      <section class="help-view" data-panel="help">
+        <h1 class="help-title">使用说明</h1>
+        <p class="help-lead">电脑开启本地收件箱，手机通过同一 Wi‑Fi 或个人热点连接。手机可以上传到电脑，电脑也能把文件放进文件库供手机下载。</p>
+        <div class="help-grid">
+          <section class="help-section">
+            <h2>启动电脑端</h2>
+            <ul>
+              <li>双击文件夹里的 <span class="help-code">start.bat</span>。</li>
+              <li>在电脑浏览器打开 <span class="help-code">http://127.0.0.1:8765</span>。</li>
+              <li>第一次运行若缺少 Django，按窗口提示安装依赖。</li>
+            </ul>
+          </section>
+          <section class="help-section">
+            <h2>连接手机</h2>
+            <ul>
+              <li>手机和电脑连接同一个可互通的 Wi‑Fi 或手机热点。</li>
+              <li>手机扫码后自动连接；电脑页面会显示在线设备。</li>
+            </ul>
+          </section>
+          <section class="help-section">
+            <h2>发送和预览</h2>
+            <ul>
+              <li>手机在“传文件”中选择文件即可上传到电脑；电脑也可添加文件到文件库供手机预览或下载。单次最多 40 个、总计 250 MB。</li>
+              <li>“文件库”支持预览、重命名、替换内容、下载或删除；支持图片、PDF、DOCX Word、TXT/CSV/Markdown/JSON 和音视频预览。</li>
+              <li>旧版 DOC 文件和其他格式可下载后用对应程序打开。</li>
+              <li>“传输状态”合并显示两种方向的当前进度；“传输记录”保留已完成和中断的记录。</li>
+            </ul>
+          </section>
+          <section class="help-section">
+            <h2>保存位置与停止</h2>
+            <ul>
+              <li>文件保存在项目文件夹的 <span class="help-code">received</span> 目录。</li>
+              <li>文件信息和双向传输记录保存在 <span class="help-code">db.sqlite3</span>。</li>
+              <li>用完后在启动窗口按 Ctrl+C。重启服务后请刷新页面并重新扫码。</li>
+            </ul>
+          </section>
+          <section class="help-section">
+            <h2>连接不上时</h2>
+            <ul>
+              <li>手机连个人热点时，在“连接网卡”选择热点对应的 Wi-Fi 地址，再点“刷新二维码”；只有列表里没有热点地址时才需要重启服务。</li>
+              <li>Windows 防火墙弹窗选择允许 Python 通过“专用网络”。</li>
+              <li>二维码在服务运行期间持续有效，不必重启后立刻扫码；可手动刷新二维码，重启服务后需重新扫码。</li>
+              <li>二维码相当于连接凭证，请勿公开分享。</li>
+            </ul>
+          </section>
+          <section class="help-section">
+            <h2>项目主页</h2>
+            <p>查看项目的 GitHub 主页。</p>
+            <a class="github-link" href="https://github.com/qiuzxxxxx" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.54v-2.08c-3.1.67-3.76-1.32-3.76-1.32-.5-1.28-1.23-1.62-1.23-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15 1 .1.72 2.01 3.22 1.53.1-.72.39-1.22.7-1.5-2.47-.28-5.07-1.23-5.07-5.48 0-1.21.43-2.2 1.14-2.98-.11-.28-.5-1.41.11-2.94 0 0 .93-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.12-1.44 3.04-1.14 3.04-1.14.61 1.53.23 2.66.12 2.94.71.78 1.13 1.77 1.13 2.98 0 4.26-2.6 5.19-5.08 5.47.4.34.75 1.01.75 2.04v3.03c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"></path></svg>
+              GitHub 主页
+            </a>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>本地收件箱 · 文件保存在当前电脑</span>
+      <span>停止服务后，手机将无法继续上传或下载</span>
+    </footer>
+  </div>
+  <dialog class="preview-dialog" id="preview-dialog">
+    <form method="dialog"><button class="preview-close" aria-label="关闭预览">×</button></form>
+    <div class="preview-name" id="preview-name"></div>
+    <div class="preview-content" id="preview-content"></div>
+  </dialog>
+  <dialog class="rename-dialog" id="rename-dialog">
+    <form id="rename-form">
+      <h2>重命名文件</h2>
+      <p>新名称会同步更新电脑里的文件名和 SQLite 记录。</p>
+      <input id="rename-input" maxlength="180" autocomplete="off" required>
+      <div class="rename-actions">
+        <button class="plain-button" id="rename-cancel" type="button">取消</button>
+        <button class="send-button" type="submit">保存名称</button>
+      </div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      const query = new URLSearchParams(window.location.search);
+      const phoneToken = query.get("token") || "";
+      const token = phoneToken || document.querySelector('meta[name="transfer-token"]').content;
+      const isAdmin = document.querySelector('meta[name="admin-enabled"]').content === "1";
+      const body = document.body;
+      if (phoneToken) body.classList.add("mobile-mode");
+      const deviceStorageKey = "localdrop-device:" + window.location.host;
+      let deviceKey = phoneToken ? localStorage.getItem(deviceStorageKey) || "" : "";
+
+      const urlText = document.getElementById("url-text");
+      const qr = document.getElementById("qr-image");
+      const qrError = document.getElementById("qr-error");
+      const refreshQrButton = document.getElementById("refresh-qr-button");
+      const refreshQrStatus = document.getElementById("refresh-qr-status");
+      const networkSelect = document.getElementById("network-select");
+      const networkHint = document.getElementById("network-hint");
+      const fileInput = document.getElementById("file-input");
+      const dropzone = document.getElementById("dropzone");
+      const queue = document.getElementById("queue");
+      const uploadButton = document.getElementById("upload-button");
+      const transferCurrentTitle = document.getElementById("transfer-current-title");
+      const transferCurrentDetail = document.getElementById("transfer-current-detail");
+      const transferCurrentState = document.getElementById("transfer-current-state");
+      const unifiedProgressTrack = document.getElementById("unified-progress-track");
+      const unifiedProgressFill = document.getElementById("unified-progress-fill");
+      const transferHistoryList = document.getElementById("transfer-history-list");
+      const fileList = document.getElementById("file-list");
+      const fileCount = document.getElementById("file-count");
+      const toast = document.getElementById("toast");
+      const pairStatus = document.getElementById("pair-status");
+      const onlineState = document.getElementById("online-state");
+      const qrStatus = document.getElementById("qr-status");
+      const deviceList = document.getElementById("device-list");
+      const previewDialog = document.getElementById("preview-dialog");
+      const previewContent = document.getElementById("preview-content");
+      const previewName = document.getElementById("preview-name");
+      const renameDialog = document.getElementById("rename-dialog");
+      const renameForm = document.getElementById("rename-form");
+      const renameInput = document.getElementById("rename-input");
+      const mobileConnectionText = document.getElementById("mobile-connection-text");
+      const mobileConnection = document.getElementById("mobile-connection");
+      const navFileCount = document.getElementById("nav-file-count");
+      const functionTabs = Array.from(document.querySelectorAll(".function-tab"));
+      const panels = Array.from(document.querySelectorAll("[data-panel]"));
+      let selectedFiles = [];
+      let toastTimer;
+      let renamingFile = null;
+      let transferRecords = [];
+      let localTransfer = null;
+      let transferSignature = "";
+      let transferLoading = false;
+
+      function queryUrl(path) {
+        return path + "?token=" + encodeURIComponent(token);
+      }
+      function authHeaders() {
+        return deviceKey ? { "X-Device-Key": deviceKey } : {};
+      }
+      function fileUrl(path, storedName) {
+        let url = path + "/" + encodeURIComponent(storedName) + "?token=" + encodeURIComponent(token);
+        if (phoneToken && deviceKey) url += "&device=" + encodeURIComponent(deviceKey);
+        return url;
+      }
+      function setPaired(value) {
+        body.classList.toggle("paired-mode", Boolean(value));
+        if (pairStatus) pairStatus.textContent = value ? "设备已连接，可以选择文件发送。" : "正在连接电脑…";
+        if (mobileConnectionText) mobileConnectionText.textContent = value ? "已连接到这台电脑" : "尚未连接到电脑";
+        if (mobileConnection) mobileConnection.classList.toggle("is-online", Boolean(value));
+      }
+      function setView(view) {
+        body.dataset.view = view;
+        functionTabs.forEach(function (tab) {
+          tab.setAttribute("aria-selected", tab.dataset.view === view ? "true" : "false");
+        });
+        panels.forEach(function (panel) {
+          panel.classList.toggle("panel-hidden", panel.dataset.panel !== view);
+        });
+        if (view === "files") loadFiles();
+        if (view === "history") {
+          renderTransferHistory();
+          loadTransferRecords();
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      functionTabs.forEach(function (tab) {
+        tab.addEventListener("click", function () { setView(tab.dataset.view); });
+      });
+      setView("send");
+      function bytes(value) {
+        if (value < 1024) return value + " B";
+        if (value < 1024 * 1024) return (value / 1024).toFixed(1) + " KB";
+        if (value < 1024 * 1024 * 1024) return (value / 1024 / 1024).toFixed(1) + " MB";
+        return (value / 1024 / 1024 / 1024).toFixed(2) + " GB";
+      }
+      function transferDirection(direction) {
+        return direction === "pc_to_phone" ? "电脑 → 手机" : "手机 → 电脑";
+      }
+      function transferStatusLabel(status) {
+        return status === "ready" ? "手机可下载" : status === "completed" ? "已完成" : status === "interrupted" ? "已中断" : "传输中";
+      }
+      function timeLabel(value) {
+        const date = new Date(value);
+        return date.toLocaleString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      }
+      function renderTransferStatus() {
+        const transfer = localTransfer
+          ? localTransfer
+          : transferRecords.find(function (record) { return record.status === "transferring"; }) || transferRecords[0];
+        if (!transfer) {
+          transferCurrentTitle.textContent = "暂无传输任务";
+          transferCurrentDetail.textContent = "完成的文件传输会保存在传输记录中。";
+          transferCurrentState.textContent = "待机";
+          transferCurrentState.className = "transfer-state";
+          unifiedProgressTrack.hidden = true;
+          return;
+        }
+        const percent = Math.max(0, Math.min(100, Number(transfer.percent) || 0));
+        transferCurrentTitle.textContent = (transfer.label || transferDirection(transfer.direction)) + " · " + transfer.name;
+        if (transfer.status === "ready") {
+          transferCurrentDetail.textContent = transfer.detail || "手机连接后可在文件库下载。";
+        } else if (transfer.status === "interrupted" && transfer.error) {
+          transferCurrentDetail.textContent = transfer.error;
+        } else if (transfer.status === "transferring") {
+          transferCurrentDetail.textContent = bytes(transfer.transferred || 0) + " / " + bytes(transfer.size || 0) +
+            (transfer.deviceName ? " · " + transfer.deviceName : "");
+        } else {
+          transferCurrentDetail.textContent = bytes(transfer.size || 0) + " · " + timeLabel(transfer.createdAt || new Date().toISOString());
+        }
+        transferCurrentState.textContent = transfer.status === "transferring" ? "传输中 " + percent + "%" : transferStatusLabel(transfer.status);
+        transferCurrentState.className = "transfer-state" + (transfer.status === "transferring" || transfer.status === "ready" ? " is-active" : transfer.status === "interrupted" ? " is-error" : "");
+        unifiedProgressTrack.hidden = false;
+        unifiedProgressFill.style.width = (transfer.status === "completed" || transfer.status === "ready" ? 100 : percent) + "%";
+      }
+      function renderTransferHistory() {
+        if (!transferHistoryList) return;
+        transferHistoryList.replaceChildren();
+        if (!transferRecords.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.textContent = "还没有传输记录。完成一次上传或下载后，记录会显示在这里。";
+          transferHistoryList.append(empty);
+          return;
+        }
+        transferRecords.forEach(function (record) {
+          const row = document.createElement("div");
+          row.className = "transfer-history-row";
+          const direction = document.createElement("span");
+          direction.className = "transfer-direction-label";
+          direction.textContent = transferDirection(record.direction);
+          const copy = document.createElement("div");
+          copy.className = "transfer-history-copy";
+          const name = document.createElement("strong");
+          name.textContent = record.name;
+          const detail = document.createElement("span");
+          detail.textContent = bytes(record.size) + (record.deviceName ? " · " + record.deviceName : "");
+          copy.append(name, detail);
+          const meta = document.createElement("div");
+          meta.className = "transfer-history-meta";
+          const state = document.createElement("span");
+          state.className = "history-status" + (record.status === "transferring" ? " is-active" : record.status === "interrupted" ? " is-error" : "");
+          state.textContent = transferStatusLabel(record.status) + (record.status === "transferring" ? " " + record.percent + "%" : "");
+          const time = document.createElement("time");
+          time.dateTime = record.createdAt;
+          time.textContent = timeLabel(record.createdAt);
+          meta.append(state, time);
+          row.append(direction, copy, meta);
+          transferHistoryList.append(row);
+        });
+      }
+      async function loadTransferRecords() {
+        if (!token || (phoneToken && !deviceKey) || transferLoading) return;
+        transferLoading = true;
+        try {
+          const response = await fetch(queryUrl("/api/transfers"), { cache: "no-store", headers: authHeaders() });
+          if (!response.ok) return;
+          const data = await response.json();
+          transferRecords = data.records || [];
+          const nextSignature = transferRecords.map(function (record) {
+            return [record.id, record.status, record.transferred, record.percent].join(":");
+          }).join("|");
+          const historyChanged = nextSignature !== transferSignature;
+          transferSignature = nextSignature;
+          if (localTransfer && localTransfer.status === "completed") localTransfer = null;
+          if (localTransfer && localTransfer.status === "interrupted") localTransfer = null;
+          if (localTransfer && localTransfer.status === "ready" && transferRecords.some(function (record) {
+            return record.direction === "pc_to_phone" && Date.parse(record.createdAt) >= Date.parse(localTransfer.createdAt);
+          })) localTransfer = null;
+          renderTransferStatus();
+          if (historyChanged && body.dataset.view === "history") renderTransferHistory();
+        } catch (error) {
+          // Keep the last visible status during brief hotspot interruptions.
+        } finally {
+          transferLoading = false;
+        }
+      }
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove("visible"); }, 2600);
+      }
+      function iconMarkup() {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 3h8l5 5v13H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M14 3v6h5M8 14h8M8 17h6"></path></svg>';
+      }
+      function renderQueue() {
+        queue.replaceChildren();
+        selectedFiles.forEach(function (file, index) {
+          const row = document.createElement("div");
+          row.className = "queue-item";
+          const glyph = document.createElement("span");
+          glyph.className = "file-glyph";
+          glyph.innerHTML = iconMarkup();
+          const copy = document.createElement("div");
+          copy.className = "queue-copy";
+          const name = document.createElement("div");
+          name.className = "queue-name";
+          name.textContent = file.name;
+          const size = document.createElement("div");
+          size.className = "queue-size";
+          size.textContent = bytes(file.size);
+          copy.append(name, size);
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "remove-file";
+          remove.setAttribute("aria-label", "移除 " + file.name);
+          remove.textContent = "×";
+          remove.addEventListener("click", function () {
+            selectedFiles.splice(index, 1);
+            renderQueue();
+          });
+          row.append(glyph, copy, remove);
+          queue.append(row);
+        });
+        uploadButton.disabled = selectedFiles.length === 0;
+        uploadButton.querySelector("span").textContent = selectedFiles.length
+          ? (isAdmin ? "加入文件库 · " : "发送 ") + selectedFiles.length + " 个文件"
+          : (isAdmin ? "添加到文件库" : "发送文件");
+      }
+      function addFiles(fileListValue) {
+        const incoming = Array.from(fileListValue || []);
+        incoming.forEach(function (file) {
+          if (!selectedFiles.some(function (current) { return current.name === file.name && current.size === file.size && current.lastModified === file.lastModified; })) {
+            selectedFiles.push(file);
+          }
+        });
+        if (selectedFiles.length > 40) {
+          selectedFiles = selectedFiles.slice(0, 40);
+          showToast("一次最多选择 40 个文件");
+        }
+        renderQueue();
+      }
+      async function loadFiles() {
+        if (!token || (phoneToken && !deviceKey)) return;
+        try {
+          const response = await fetch(queryUrl("/api/files"), { cache: "no-store", headers: authHeaders() });
+          if (!response.ok) return;
+          const data = await response.json();
+          const files = data.files || [];
+          fileCount.textContent = files.length + " 个文件 · 保存在本机 received 文件夹";
+          navFileCount.textContent = String(files.length);
+          fileList.replaceChildren();
+          if (!files.length) {
+            const empty = document.createElement("div");
+            empty.className = "empty-state";
+            empty.innerHTML = "文件库暂时为空。<br>手机可在“传文件”上传；电脑也可以添加文件供手机下载。";
+            fileList.append(empty);
+            return;
+          }
+          files.forEach(function (file) {
+            const row = document.createElement("div");
+            row.className = "received-file";
+            const glyph = document.createElement("span");
+            glyph.className = "file-glyph";
+            glyph.innerHTML = iconMarkup();
+            const copy = document.createElement("div");
+            copy.className = "queue-copy";
+            const name = document.createElement("div");
+            name.className = "queue-name";
+            name.textContent = file.name;
+            const size = document.createElement("div");
+            size.className = "queue-size";
+            const date = new Date(file.modified);
+            size.append(document.createTextNode(bytes(file.size) + " "));
+            const when = document.createElement("span");
+            when.textContent = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            size.append(when);
+            copy.append(name, size);
+            const actions = document.createElement("div");
+            actions.className = "file-actions";
+            if (file.previewable) {
+              const previewButton = document.createElement("button");
+              previewButton.type = "button";
+              previewButton.className = "preview-trigger";
+              previewButton.textContent = "预览";
+              previewButton.addEventListener("click", function () { openPreview(file); });
+              actions.append(previewButton);
+            }
+            const renameButton = document.createElement("button");
+            renameButton.type = "button";
+            renameButton.className = "preview-trigger";
+            renameButton.textContent = "重命名";
+            renameButton.addEventListener("click", function () {
+              renamingFile = file;
+              renameInput.value = file.name;
+              renameDialog.showModal();
+              renameInput.focus();
+              renameInput.select();
+            });
+            actions.append(renameButton);
+            const replaceButton = document.createElement("button");
+            replaceButton.type = "button";
+            replaceButton.className = "replace-trigger";
+            replaceButton.textContent = "替换";
+            replaceButton.addEventListener("click", function () {
+              if (!window.confirm("选择同格式的新文件，替换“" + file.name + "”的内容？")) return;
+              const picker = document.createElement("input");
+              picker.type = "file";
+              const suffix = file.name.match(/\.[^.]+$/);
+              if (suffix) picker.accept = suffix[0];
+              picker.addEventListener("change", async function () {
+                const replacement = picker.files && picker.files[0];
+                if (!replacement) return;
+                const form = new FormData();
+                form.append("file", replacement, replacement.name);
+                replaceButton.disabled = true;
+                try {
+                  const response = await fetch(queryUrl("/api/files/" + file.id + "/replace"), {
+                    method: "POST",
+                    headers: authHeaders(),
+                    body: form
+                  });
+                  const result = await response.json();
+                  if (!response.ok) {
+                    showToast(result.error || "替换失败");
+                    return;
+                  }
+                  showToast(result.message || "文件内容已替换");
+                  loadFiles();
+                } catch (error) {
+                  showToast("替换失败，请检查网络后重试");
+                } finally {
+                  replaceButton.disabled = false;
+                }
+              });
+              picker.click();
+            });
+            actions.append(replaceButton);
+            const download = document.createElement("a");
+            download.className = "download-link";
+            download.href = fileUrl("/download", file.storedName);
+            download.textContent = "下载";
+            actions.append(download);
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.className = "delete-trigger";
+            deleteButton.textContent = "删除";
+            deleteButton.addEventListener("click", async function () {
+              if (!window.confirm("确定删除“" + file.name + "”吗？此操作无法撤销。")) return;
+              const response = await fetch(queryUrl("/api/files/" + file.id + "/delete"), {
+                method: "POST",
+                headers: authHeaders()
+              });
+              const result = await response.json();
+              if (!response.ok) {
+                showToast(result.error || "删除失败");
+                return;
+              }
+              showToast("文件已删除");
+              loadFiles();
+            });
+            actions.append(deleteButton);
+            row.append(glyph, copy, actions);
+            fileList.append(row);
+          });
+        } catch (error) {
+          // The desktop inbox is refreshed separately from the upload interaction.
+        }
+      }
+      function openPreview(file) {
+        previewName.textContent = file.name;
+        previewContent.replaceChildren();
+        let media;
+        if (file.previewKind === "image") {
+          media = document.createElement("img");
+          media.alt = file.name;
+        } else if (["pdf", "word", "text"].includes(file.previewKind)) {
+          media = document.createElement("iframe");
+          media.title = file.name;
+          media.loading = "lazy";
+        } else {
+          media = document.createElement(/\.mp4$|\.webm$/i.test(file.name) ? "video" : "audio");
+          media.controls = true;
+          media.autoplay = false;
+          media.preload = "metadata";
+        }
+        media.src = fileUrl("/preview", file.storedName);
+        previewContent.append(media);
+        previewDialog.showModal();
+      }
+      renameForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        if (!renamingFile) return;
+        const response = await fetch(queryUrl("/api/files/" + renamingFile.id + "/rename"), {
+          method: "POST",
+          headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+          body: JSON.stringify({ name: renameInput.value.trim() })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          showToast(result.error || "重命名失败");
+          return;
+        }
+        renameDialog.close();
+        renamingFile = null;
+        showToast(result.message || "文件名已更新");
+        loadFiles();
+      });
+      document.getElementById("rename-cancel").addEventListener("click", function () {
+        renameDialog.close();
+        renamingFile = null;
+      });
+      fileInput.addEventListener("change", function () {
+        addFiles(fileInput.files);
+        fileInput.value = "";
+      });
+      ["dragenter", "dragover"].forEach(function (eventName) {
+        dropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          dropzone.classList.add("is-over");
+        });
+      });
+      ["dragleave", "drop"].forEach(function (eventName) {
+        dropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          dropzone.classList.remove("is-over");
+        });
+      });
+      dropzone.addEventListener("drop", function (event) { addFiles(event.dataTransfer.files); });
+      document.getElementById("history-shortcut").addEventListener("click", function () { setView("history"); });
+      document.getElementById("history-refresh").addEventListener("click", loadTransferRecords);
+      uploadButton.addEventListener("click", function () {
+        if (!selectedFiles.length || uploadButton.disabled) return;
+        const totalBytes = selectedFiles.reduce(function (total, file) { return total + file.size; }, 0);
+        if (totalBytes > 250 * 1024 * 1024) {
+          showToast("这批文件超过 250 MB，请分批发送");
+          return;
+        }
+        const form = new FormData();
+        selectedFiles.forEach(function (file) { form.append("files", file, file.name); });
+        uploadButton.disabled = true;
+        localTransfer = {
+          direction: isAdmin ? "pc_to_phone" : "phone_to_pc",
+          label: isAdmin ? "准备给手机的文件" : "",
+          name: selectedFiles.length === 1 ? selectedFiles[0].name : selectedFiles.length + " 个文件",
+          size: totalBytes,
+          transferred: 0,
+          percent: 0,
+          status: "transferring",
+          deviceName: "本设备",
+          createdAt: new Date().toISOString()
+        };
+        renderTransferStatus();
+        const request = new XMLHttpRequest();
+        request.open("POST", queryUrl("/api/upload"));
+        if (deviceKey) request.setRequestHeader("X-Device-Key", deviceKey);
+        request.upload.addEventListener("progress", function (event) {
+          if (!event.lengthComputable) return;
+          const percent = Math.round(event.loaded / event.total * 100);
+          localTransfer.percent = percent;
+          localTransfer.transferred = Math.min(totalBytes, Math.round(totalBytes * percent / 100));
+          renderTransferStatus();
+        });
+        request.addEventListener("load", function () {
+          let result = {};
+          try { result = JSON.parse(request.responseText); } catch (error) {}
+          if (request.status >= 200 && request.status < 300) {
+            localTransfer.status = isAdmin ? "ready" : "completed";
+            localTransfer.label = isAdmin ? "已加入文件库" : "";
+            localTransfer.detail = isAdmin ? "手机连接后可在文件库预览或下载。" : "";
+            localTransfer.percent = 100;
+            localTransfer.transferred = totalBytes;
+            renderTransferStatus();
+            showToast(isAdmin ? "已加入文件库，手机可下载" : "已发送到电脑");
+            selectedFiles = [];
+            renderQueue();
+            loadFiles();
+            loadTransferRecords();
+          } else {
+            localTransfer.status = "interrupted";
+            localTransfer.percent = 0;
+            localTransfer.error = result.error || "上传失败，请检查网络后重试。";
+            renderTransferStatus();
+            showToast(localTransfer.error);
+            uploadButton.disabled = false;
+          }
+        });
+        request.addEventListener("error", function () {
+          localTransfer.status = "interrupted";
+          localTransfer.error = "连接中断。请确认手机和电脑仍在同一网络，再试一次。";
+          renderTransferStatus();
+          showToast(localTransfer.error);
+          uploadButton.disabled = false;
+        });
+        request.addEventListener("abort", function () {
+          localTransfer.status = "interrupted";
+          localTransfer.error = "上传已取消。";
+          renderTransferStatus();
+          showToast(localTransfer.error);
+          uploadButton.disabled = false;
+        });
+        request.send(form);
+      });
+
+      function renderNetworkAddresses(addresses, activeAddress) {
+        if (!networkSelect) return;
+        const previous = networkSelect.value;
+        const items = Array.isArray(addresses) ? addresses.slice() : [];
+        if (activeAddress && !items.some(function (item) { return item.ip === activeAddress; })) {
+          items.unshift({ ip: activeAddress, label: "当前二维码地址" });
+        }
+        networkSelect.replaceChildren();
+        if (!items.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "未找到可用地址";
+          networkSelect.append(option);
+          return;
+        }
+        items.forEach(function (item) {
+          const option = document.createElement("option");
+          option.value = item.ip;
+          option.textContent = item.label + " · " + item.ip;
+          networkSelect.append(option);
+        });
+        networkSelect.value = items.some(function (item) { return item.ip === previous; })
+          ? previous : activeAddress || items[0].ip;
+      }
+
+      async function refreshDevices() {
+        if (!isAdmin) return;
+        try {
+          const response = await fetch("/api/devices", { cache: "no-store" });
+          if (!response.ok) return;
+          const data = await response.json();
+          renderNetworkAddresses(data.addresses, data.activeAddress);
+          if (networkHint && data.onlineCount > 0) {
+            networkHint.textContent = "已有 " + data.onlineCount + " 台设备在线；更换网卡后刷新二维码即可切换地址。";
+          }
+          onlineState.classList.toggle("is-online", data.onlineCount > 0);
+          onlineState.querySelector("span").textContent = data.onlineCount
+            ? data.onlineCount + " 台设备在线"
+            : "等待手机连接";
+          qrStatus.classList.toggle("is-online", data.onlineCount > 0);
+          qrStatus.querySelector("span").textContent = data.onlineCount
+            ? data.onlineCount + " 台在线"
+            : "等待连接";
+          deviceList.replaceChildren();
+          if (!data.devices.length) {
+            const empty = document.createElement("div");
+            empty.className = "device-empty";
+            empty.textContent = "暂时没有扫码连接的设备。";
+            deviceList.append(empty);
+            return;
+          }
+          data.devices.forEach(function (device) {
+            const row = document.createElement("div");
+            row.className = "device-row" + (device.online ? " is-online" : "");
+            const dot = document.createElement("i");
+            dot.className = "live-dot";
+            const name = document.createElement("span");
+            name.className = "device-name";
+            name.textContent = device.name;
+            const state = document.createElement("span");
+            state.className = "device-state";
+            state.textContent = device.online ? "在线" :
+              (device.lastSeen ? "离线" : "未连接");
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "device-remove";
+            remove.textContent = "断开";
+            remove.addEventListener("click", async function () {
+              await fetch("/api/devices/" + device.id + "/revoke", { method: "POST" });
+              refreshDevices();
+            });
+            row.append(dot, name, state, remove);
+            deviceList.append(row);
+          });
+        } catch (error) {
+          onlineState.querySelector("span").textContent = "暂时无法读取连接状态";
+        }
+      }
+
+      async function pairPhone() {
+        if (!phoneToken || deviceKey) return;
+        pairStatus.textContent = "正在通过二维码连接电脑…";
+        const userAgent = navigator.userAgent;
+        const deviceName = /iPad|iPhone|iPod/i.test(userAgent) ? "iPhone / iPad" :
+          (/Android/i.test(userAgent) ? "Android 手机" : "手机浏览器");
+        try {
+          const response = await fetch(queryUrl("/api/pair"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: deviceName })
+          });
+          const result = await response.json();
+          if (!response.ok) {
+            pairStatus.textContent = result.error || "连接失败，请刷新电脑上的二维码再试。";
+            return;
+          }
+          deviceKey = result.deviceKey;
+          localStorage.setItem(deviceStorageKey, deviceKey);
+          setPaired(true);
+          pairStatus.textContent = "已连接到电脑。";
+          showToast("设备已连接");
+          loadFiles();
+        } catch (error) {
+          pairStatus.textContent = "连接失败，请确认手机仍连着电脑所在的热点或 Wi-Fi。";
+        }
+      }
+
+      async function sendHeartbeat() {
+        if (!phoneToken || !deviceKey) return;
+        try {
+          const response = await fetch(queryUrl("/api/heartbeat"), {
+            method: "POST",
+            headers: authHeaders()
+          });
+          if (response.status === 403) {
+            deviceKey = "";
+            localStorage.removeItem(deviceStorageKey);
+            setPaired(false);
+            pairStatus.textContent = "设备已断开，请重新扫描电脑上的二维码。";
+          }
+        } catch (error) {
+          // Keep the paired state during brief hotspot interruptions.
+        }
+      }
+
+      if (!phoneToken) {
+        document.querySelector(".hero-copy h1").innerHTML = '电脑与手机的文件<br><span class="title-accent">双向传。</span>';
+        document.querySelector(".hero-copy .lead.desktop-only").textContent = "手机上传到电脑，也能从电脑文件库预览或下载到手机。两种方向共用同一处传输状态和记录。";
+        document.getElementById("upload-heading").textContent = "添加文件给手机";
+        uploadButton.querySelector("span").textContent = "添加到文件库";
+        document.querySelector(".drop-sub").innerHTML = '拖放或选择文件 · <em>手机端可预览或下载</em>';
+        document.getElementById("transfer-help-copy").textContent = "电脑选择的文件先加入本机文件库，手机连接后即可预览或下载；手机文件也能上传回电脑。";
+        let shareUrl = new URL(document.querySelector('meta[name="share-address"]').content);
+        if (networkSelect) {
+          networkSelect.addEventListener("change", function () {
+            if (networkHint) networkHint.textContent = "已选择 " + networkSelect.value + "；点击“刷新二维码”应用新地址。";
+          });
+        }
+        urlText.textContent = shareUrl.host || "本机连接";
+        document.getElementById("copy-button").addEventListener("click", async function () {
+          try {
+            await navigator.clipboard.writeText(shareUrl.href);
+            showToast("地址已复制");
+          } catch (error) {
+            showToast("请复制浏览器地址栏中的地址");
+          }
+        });
+        refreshQrButton.addEventListener("click", async function () {
+          refreshQrButton.disabled = true;
+          refreshQrStatus.textContent = "正在更新…";
+          try {
+            const response = await fetch("/api/refresh-link", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ip: networkSelect ? networkSelect.value : "" })
+            });
+            const result = await response.json();
+            if (!response.ok) {
+              refreshQrStatus.textContent = result.error || "更新失败";
+              return;
+            }
+            shareUrl = new URL(result.shareAddress);
+            document.querySelector('meta[name="share-address"]').content = shareUrl.href;
+            urlText.textContent = shareUrl.host;
+            if (networkSelect && result.activeAddress) networkSelect.value = result.activeAddress;
+            if (networkHint && result.activeAddress) networkHint.textContent = "当前使用 " + result.activeAddress + "；二维码已更新。";
+            qrError.style.display = "none";
+            qr.style.display = "block";
+            qr.src = result.qrUrl + "&v=" + Date.now();
+            refreshQrStatus.textContent = "已更新；现有连接保持在线";
+            showToast("二维码已刷新");
+          } catch (error) {
+            refreshQrStatus.textContent = "刷新失败，请重试";
+          } finally {
+            refreshQrButton.disabled = false;
+          }
+        });
+        loadFiles();
+        loadTransferRecords();
+        refreshDevices();
+        window.setInterval(loadFiles, 7000);
+        window.setInterval(loadTransferRecords, 2000);
+        window.setInterval(refreshDevices, 5000);
+      } else {
+        document.getElementById("upload-heading").textContent = "选择要发送的文件";
+        document.querySelector(".drop-sub").innerHTML = '从手机中选择或拖放文件 · <em>发送到电脑文件库</em>';
+        document.title = "发送文件到电脑 · 本地收件箱";
+        if (deviceKey) {
+          setPaired(true);
+          sendHeartbeat().then(loadFiles);
+          loadTransferRecords();
+          window.setInterval(sendHeartbeat, 8000);
+        } else {
+          setPaired(false);
+          pairPhone();
+        }
+      }
+      if (phoneToken) window.setInterval(loadTransferRecords, 2000);
+      qr.addEventListener("error", function () {
+        qr.style.display = "none";
+        qrError.style.display = "block";
+      });
+    })();
+  </script>
+</body>
+</html>
