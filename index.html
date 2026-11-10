@@ -147,8 +147,17 @@
     .queue-copy { min-width: 0; flex: 1; }
     .queue-name { overflow: hidden; color: #28382f; font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
     .queue-size { margin-top: 3px; color: #728076; font-size: 11px; }
+    .queue-error { margin-top: 4px; color: #9a5140; font-size: 11px; line-height: 1.4; }
+    .queue-item.is-complete .queue-size { color: #287447; }
+    .queue-actions { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
     .remove-file { width: 29px; height: 29px; border: 0; border-radius: 8px; background: transparent; color: #758078; cursor: pointer; font-size: 18px; }
     .remove-file:hover { background: #e8eee6; color: var(--ink); }
+    .remove-file:disabled { opacity: .45; cursor: wait; }
+    .retry-file { min-height: 30px; padding: 0 8px; border: 1px solid #d4dfd4; border-radius: 7px; background: #f4f8f2; color: var(--green); cursor: pointer; font-size: 11px; font-weight: 700; }
+    .retry-file:disabled { opacity: .5; cursor: wait; }
+    .queue-summary { min-height: 20px; margin: 7px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .queue-summary.is-over-limit { color: #9a5140; font-weight: 650; }
+    .dropzone.is-disabled { opacity: .7; cursor: wait; }
     .upload-actions { display: flex; align-items: center; gap: 14px; margin-top: 15px; }
     .send-button {
       min-height: 45px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 18px;
@@ -223,7 +232,7 @@
     .preview-content img, .preview-content video { display: block; max-width: 100%; max-height: 68vh; border-radius: 8px; object-fit: contain; }
     .preview-content iframe { width: 100%; height: min(68vh, 720px); border: 0; border-radius: 8px; background: #fff; }
     .preview-content audio { width: min(100%, 520px); }
-    .file-actions { display: flex; gap: 10px; align-items: center; }
+    .file-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; align-items: center; }
     .preview-trigger, .download-link { border: 0; background: transparent; color: var(--green); text-decoration: none; cursor: pointer; font-size: 11px; font-weight: 700; white-space: nowrap; }
     .replace-trigger { border: 0; background: transparent; color: #5e6d61; cursor: pointer; font-size: 11px; font-weight: 700; white-space: nowrap; }
     .replace-trigger:hover { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
@@ -285,6 +294,25 @@
     .file-view .file-list { border-top: 1px solid var(--line); }
     .file-view .received-file { min-height: 72px; }
     .preview-hint { margin: -8px 0 15px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .storage-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 0 0 17px; padding: 11px 13px; border-radius: 10px; background: #e8eee6; color: #42554a; font-size: 12px; }
+    .storage-summary span { min-width: 0; }
+    .storage-refresh { flex: 0 0 auto; border: 0; background: transparent; color: var(--green); cursor: pointer; font-size: 11px; font-weight: 700; }
+    .storage-refresh:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .file-toolbar { display: grid; gap: 11px; margin-bottom: 12px; }
+    .file-filter-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(175px,.48fr); gap: 9px; }
+    .file-search, .file-sort { min-width: 0; height: 42px; padding: 0 12px; border: 1px solid #cbd5cb; border-radius: 9px; background: rgba(255,254,250,.82); color: #35463c; font-size: 12px; }
+    .file-search:focus, .file-sort:focus { outline: 2px solid rgba(31,85,69,.2); border-color: var(--green); }
+    .file-bulk-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 11px; }
+    .file-bulk-count { flex: 1 1 auto; color: var(--muted); font-size: 11px; }
+    .file-bulk-button { min-height: 34px; padding: 0 10px; border: 1px solid #cbd8cc; border-radius: 8px; background: #f7faf5; color: var(--green); cursor: pointer; font-size: 11px; font-weight: 700; }
+    .file-bulk-button:hover:not(:disabled) { border-color: var(--green); background: #edf4ec; }
+    .file-bulk-button:disabled { opacity: .48; cursor: not-allowed; }
+    .file-bulk-button.is-danger { border-color: #e2c9c1; background: #fbf5f2; color: #8c4939; }
+    .file-bulk-button.is-danger:hover:not(:disabled) { border-color: #aa6451; background: #f8ece7; }
+    .file-pager { display: flex; justify-content: flex-end; align-items: center; gap: 11px; padding: 10px 0; color: var(--muted); font-size: 11px; }
+    .file-pager button { min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--white); color: #43554a; cursor: pointer; font-size: 11px; }
+    .file-pager button:disabled { opacity: .45; cursor: not-allowed; }
+    .file-select { width: 17px; height: 17px; flex: 0 0 auto; margin: 0 2px; accent-color: var(--green); cursor: pointer; }
     .help-view { max-width: 940px; padding: 36px 0 12px; }
     .help-title { margin: 0; font-size: clamp(30px,4vw,42px); letter-spacing: -.045em; }
     .help-lead { max-width: 650px; margin: 10px 0 27px; color: var(--muted); font-size: 14px; line-height: 1.8; }
@@ -358,6 +386,14 @@
       .transfer-center-head { align-items: flex-start; }
       .transfer-center-head p { max-width: 235px; line-height: 1.5; }
       .history-view { padding-top: 28px; }
+      .file-view { padding-top: 28px; }
+      .file-filter-row { grid-template-columns: 1fr; }
+      .file-bulk-row { gap: 7px; }
+      .file-bulk-count { flex-basis: 100%; }
+      .file-pager { justify-content: space-between; }
+      .file-view .received-file { gap: 8px; }
+      .file-actions { gap: 7px; }
+      .file-actions button, .file-actions a { font-size: 10px; }
       .transfer-history-row { grid-template-columns: 78px minmax(0,1fr) auto; gap: 8px; min-height: 66px; }
       .transfer-direction-label { font-size: 10px; }
       .transfer-history-meta { font-size: 9px; }
@@ -532,7 +568,7 @@
         <div class="upload-column">
           <div class="section-head">
             <h2 id="upload-heading">发送到这台电脑</h2>
-            <span class="section-note">支持多选 · 单次最多 250 MB</span>
+            <span class="section-note">最多 40 个 · 每批合计 250 MB</span>
           </div>
           <label class="dropzone" id="dropzone" for="file-input">
             <input id="file-input" type="file" multiple>
@@ -543,6 +579,7 @@
             <span class="drop-sub">也可以把文件拖到这里 · <em>照片、视频、文档都可以</em></span>
           </label>
           <div class="queue" id="queue" aria-live="polite"></div>
+          <p class="queue-summary" id="queue-summary" role="status" aria-live="polite" hidden></p>
           <div class="upload-actions">
             <button class="send-button" id="upload-button" type="button" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"></path></svg>
@@ -563,8 +600,37 @@
           <span class="section-note" id="file-count">0 个文件 · 保存在本机 received 文件夹</span>
         </div>
         <p class="preview-hint">可预览图片、PDF、Word（DOCX）、文本和音视频；也可重命名、替换、下载或删除文件。</p>
+        <div class="storage-summary">
+          <span id="storage-summary" role="status" aria-live="polite">正在读取收件箱和磁盘空间…</span>
+          <button class="storage-refresh" id="storage-refresh" type="button">刷新</button>
+        </div>
+        <div class="file-toolbar">
+          <div class="file-filter-row">
+            <input class="file-search" id="file-search" type="search" maxlength="180" placeholder="搜索文件名" aria-label="搜索文件名">
+            <select class="file-sort" id="file-sort" aria-label="文件排序方式">
+              <option value="newest">最新上传</option>
+              <option value="oldest">最早上传</option>
+              <option value="name-asc">名称正序</option>
+              <option value="name-desc">名称倒序</option>
+              <option value="largest">体积从大到小</option>
+              <option value="smallest">体积从小到大</option>
+            </select>
+          </div>
+          <div class="file-bulk-row">
+            <button class="file-bulk-button" id="select-file-page" type="button">选择本页</button>
+            <span class="file-bulk-count" id="selected-file-count">已选 0 个（最多 100 个）</span>
+            <button class="file-bulk-button" id="clear-file-selection" type="button" disabled>清除选择</button>
+            <button class="file-bulk-button" id="download-selected" type="button" disabled>下载 ZIP</button>
+            <button class="file-bulk-button is-danger" id="delete-selected" type="button" disabled>删除所选</button>
+          </div>
+        </div>
         <div class="file-list" id="file-list">
           <div class="empty-state">还没有收到文件。<br>传过来的文件会显示在这里。</div>
+        </div>
+        <div class="file-pager">
+          <button id="file-prev" type="button" disabled>上一页</button>
+          <span id="file-page-label">第 1 页</span>
+          <button id="file-next" type="button" disabled>下一页</button>
         </div>
       </section>
 
@@ -601,8 +667,9 @@
           <section class="help-section">
             <h2>发送和预览</h2>
             <ul>
-              <li>手机在“传文件”中选择文件即可上传到电脑；电脑也可添加文件到文件库供手机预览或下载。单次最多 40 个、总计 250 MB。</li>
-              <li>“文件库”支持预览、重命名、替换内容、下载或删除；支持图片、PDF、DOCX Word、TXT/CSV/Markdown/JSON 和音视频预览。</li>
+              <li>手机在“传文件”中选择文件即可上传到电脑；电脑也可添加文件到文件库供手机预览或下载。单次最多 40 个、总计 250 MB；待发送队列保存在当前浏览器，刷新后可继续，失败文件可单独重试。</li>
+              <li>“文件库”可搜索、排序和分页；最多勾选 100 个文件打包下载为 ZIP 或批量删除，也支持预览、重命名、替换内容和单个下载。</li>
+              <li>文件库页面会显示已保存文件占用和磁盘可用空间。图片、PDF、DOCX Word、TXT/CSV/Markdown/JSON 和音视频可预览。</li>
               <li>旧版 DOC 文件和其他格式可下载后用对应程序打开。</li>
               <li>“传输状态”合并显示两种方向的当前进度；“传输记录”保留已完成和中断的记录。</li>
             </ul>
@@ -680,7 +747,19 @@
       const fileInput = document.getElementById("file-input");
       const dropzone = document.getElementById("dropzone");
       const queue = document.getElementById("queue");
+      const queueSummary = document.getElementById("queue-summary");
       const uploadButton = document.getElementById("upload-button");
+      const fileSearch = document.getElementById("file-search");
+      const fileSort = document.getElementById("file-sort");
+      const storageSummary = document.getElementById("storage-summary");
+      const filePageLabel = document.getElementById("file-page-label");
+      const filePreviousButton = document.getElementById("file-prev");
+      const fileNextButton = document.getElementById("file-next");
+      const selectFilePageButton = document.getElementById("select-file-page");
+      const selectedFileCount = document.getElementById("selected-file-count");
+      const clearFileSelectionButton = document.getElementById("clear-file-selection");
+      const downloadSelectedButton = document.getElementById("download-selected");
+      const deleteSelectedButton = document.getElementById("delete-selected");
       const transferCurrentTitle = document.getElementById("transfer-current-title");
       const transferCurrentDetail = document.getElementById("transfer-current-detail");
       const transferCurrentState = document.getElementById("transfer-current-state");
@@ -706,6 +785,26 @@
       const functionTabs = Array.from(document.querySelectorAll(".function-tab"));
       const panels = Array.from(document.querySelectorAll("[data-panel]"));
       let selectedFiles = [];
+      let uploadInProgress = false;
+      let queueReady = false;
+      let queuePersisted = false;
+      let queuePersistenceFailed = false;
+      let queueDatabasePromise = null;
+      let queueWriteChain = Promise.resolve();
+      let queueWriteVersion = 0;
+      let fileSearchTimer = null;
+      let fileRequestVersion = 0;
+      let filePage = 1;
+      let filePageCount = 0;
+      let fileTotalCount = 0;
+      let currentPageFiles = [];
+      let fileListSignature = "";
+      let bulkActionInProgress = false;
+      const selectedFileIds = new Set();
+      const queueStorageKey = (phoneToken ? "phone:" : "computer:") + window.location.host;
+      const maxSelectedLibraryFiles = 100;
+      const maxFilesPerBatch = 40;
+      const maxUploadBytes = 250 * 1024 * 1024;
       let toastTimer;
       let renamingFile = null;
       let transferRecords = [];
@@ -738,7 +837,10 @@
         panels.forEach(function (panel) {
           panel.classList.toggle("panel-hidden", panel.dataset.panel !== view);
         });
-        if (view === "files") loadFiles();
+        if (view === "files") {
+          loadFiles();
+          loadStorage();
+        }
         if (view === "history") {
           renderTransferHistory();
           loadTransferRecords();
@@ -754,6 +856,136 @@
         if (value < 1024 * 1024) return (value / 1024).toFixed(1) + " KB";
         if (value < 1024 * 1024 * 1024) return (value / 1024 / 1024).toFixed(1) + " MB";
         return (value / 1024 / 1024 / 1024).toFixed(2) + " GB";
+      }
+      function openQueueDatabase() {
+        if (!window.indexedDB) return Promise.reject(new Error("此浏览器不支持本地队列保存。"));
+        if (!queueDatabasePromise) {
+          queueDatabasePromise = new Promise(function (resolve, reject) {
+            const request = window.indexedDB.open("localdrop-upload-queue", 2);
+            request.onupgradeneeded = function () {
+              const database = request.result;
+              if (!database.objectStoreNames.contains("queues")) database.createObjectStore("queues");
+              if (!database.objectStoreNames.contains("blobs")) database.createObjectStore("blobs");
+            };
+            request.onsuccess = function () { resolve(request.result); };
+            request.onerror = function () { reject(request.error || new Error("无法打开浏览器本地存储。")); };
+            request.onblocked = function () { reject(new Error("本地队列正在被另一个页面占用。")); };
+          });
+        }
+        return queueDatabasePromise;
+      }
+      function persistQueue() {
+        const version = ++queueWriteVersion;
+        const snapshotItems = selectedFiles.slice();
+        const snapshot = snapshotItems.map(function (item) {
+          return {
+            id: item.id,
+            name: item.file.name,
+            type: item.file.type,
+            lastModified: item.file.lastModified,
+            status: item.status,
+            error: item.error || ""
+          };
+        });
+        queuePersisted = false;
+        queuePersistenceFailed = false;
+        queueWriteChain = queueWriteChain.catch(function () {}).then(function () {
+          return openQueueDatabase().then(function (database) {
+            return new Promise(function (resolve, reject) {
+              let transaction;
+              try {
+                transaction = database.transaction(["queues", "blobs"], "readwrite");
+                const queues = transaction.objectStore("queues");
+                const blobs = transaction.objectStore("blobs");
+                const previous = queues.get(queueStorageKey);
+                previous.onsuccess = function () {
+                  const oldIds = new Set(previous.result && previous.result.ids || []);
+                  const nextIds = new Set(snapshot.map(function (item) { return item.id; }));
+                  snapshotItems.forEach(function (item) {
+                    if (item.blobDirty || !oldIds.has(item.id)) blobs.put(item.file, queueStorageKey + "\u0000" + item.id);
+                  });
+                  oldIds.forEach(function (id) {
+                    if (!nextIds.has(id)) blobs.delete(queueStorageKey + "\u0000" + id);
+                  });
+                  queues.put({ ids: Array.from(nextIds), items: snapshot }, queueStorageKey);
+                };
+              } catch (error) {
+                reject(error);
+                return;
+              }
+              transaction.oncomplete = function () {
+                if (version === queueWriteVersion) snapshotItems.forEach(function (item) { item.blobDirty = false; });
+                resolve();
+              };
+              transaction.onerror = function () { reject(transaction.error || new Error("保存待发送队列失败。")); };
+              transaction.onabort = function () { reject(transaction.error || new Error("保存待发送队列失败。")); };
+            });
+          });
+        });
+        return queueWriteChain.then(function () {
+          if (version === queueWriteVersion) queuePersisted = true;
+        }).catch(function () {
+          if (version === queueWriteVersion) queuePersistenceFailed = true;
+        });
+      }
+      async function restoreQueue() {
+        let recoveredInterruptedUpload = false;
+        try {
+          const database = await openQueueDatabase();
+          const entries = await new Promise(function (resolve, reject) {
+            let result = [];
+            let transaction;
+            try {
+              transaction = database.transaction(["queues", "blobs"], "readonly");
+              const request = transaction.objectStore("queues").get(queueStorageKey);
+              const blobs = transaction.objectStore("blobs");
+              request.onsuccess = function () {
+                const manifest = request.result;
+                const savedItems = manifest && manifest.items || [];
+                result = new Array(savedItems.length);
+                let remaining = savedItems.length;
+                if (!remaining) return;
+                savedItems.forEach(function (entry, index) {
+                  const blobRequest = blobs.get(queueStorageKey + "\u0000" + entry.id);
+                  blobRequest.onsuccess = function () {
+                    if (blobRequest.result) result[index] = Object.assign({}, entry, { blob: blobRequest.result });
+                    remaining -= 1;
+                  };
+                  blobRequest.onerror = function () { remaining -= 1; };
+                });
+              };
+              request.onerror = function () { reject(request.error || new Error("读取待发送队列失败。")); };
+            } catch (error) {
+              reject(error);
+              return;
+            }
+            transaction.oncomplete = function () { resolve(result || []); };
+            transaction.onerror = function () { reject(transaction.error || new Error("读取待发送队列失败。")); };
+            transaction.onabort = function () { reject(transaction.error || new Error("读取待发送队列失败。")); };
+          });
+          selectedFiles = entries.filter(Boolean).map(function (entry) {
+            const file = entry.blob instanceof File
+              ? entry.blob
+              : new File([entry.blob], entry.name, { type: entry.type || "", lastModified: entry.lastModified || Date.now() });
+            const interrupted = entry.status === "uploading";
+            if (interrupted) recoveredInterruptedUpload = true;
+            return {
+              id: entry.id || [file.name, file.size, file.lastModified, file.type].join("\u0000"),
+              file: file,
+              status: interrupted ? "failed" : (entry.status || "pending"),
+              error: interrupted ? "页面关闭前传输尚未确认；请检查文件库后再重试。" : (entry.error || ""),
+              blobDirty: false
+            };
+          }).filter(function (item) { return ["pending", "failed", "completed"].includes(item.status); });
+          queuePersisted = true;
+        } catch (error) {
+          queuePersistenceFailed = true;
+          showToast("无法恢复浏览器中保存的待发送队列");
+        } finally {
+          queueReady = true;
+          renderQueue();
+          if (recoveredInterruptedUpload) persistQueue().then(renderQueue);
+        }
       }
       function transferDirection(direction) {
         return direction === "pc_to_phone" ? "电脑 → 手机" : "手机 → 电脑";
@@ -844,7 +1076,6 @@
           const historyChanged = nextSignature !== transferSignature;
           transferSignature = nextSignature;
           if (localTransfer && localTransfer.status === "completed") localTransfer = null;
-          if (localTransfer && localTransfer.status === "interrupted") localTransfer = null;
           if (localTransfer && localTransfer.status === "ready" && transferRecords.some(function (record) {
             return record.direction === "pc_to_phone" && Date.parse(record.createdAt) >= Date.parse(localTransfer.createdAt);
           })) localTransfer = null;
@@ -867,9 +1098,14 @@
       }
       function renderQueue() {
         queue.replaceChildren();
-        selectedFiles.forEach(function (file, index) {
+        const pending = selectedFiles.filter(function (item) { return item.status !== "completed"; });
+        const completedCount = selectedFiles.length - pending.length;
+        const totalBytes = pending.reduce(function (total, item) { return total + item.file.size; }, 0);
+        const statusLabels = { pending: "待发送", uploading: "正在发送", completed: isAdmin ? "已加入文件库" : "已发送", failed: "发送失败" };
+        selectedFiles.forEach(function (item, index) {
+          const file = item.file;
           const row = document.createElement("div");
-          row.className = "queue-item";
+          row.className = "queue-item" + (item.status === "failed" ? " is-failed" : item.status === "completed" ? " is-complete" : "");
           const glyph = document.createElement("span");
           glyph.className = "file-glyph";
           glyph.innerHTML = iconMarkup();
@@ -880,58 +1116,193 @@
           name.textContent = file.name;
           const size = document.createElement("div");
           size.className = "queue-size";
-          size.textContent = bytes(file.size);
+          size.textContent = bytes(file.size) + " · " + (statusLabels[item.status] || statusLabels.pending);
           copy.append(name, size);
+          if (item.error) {
+            const error = document.createElement("div");
+            error.className = "queue-error";
+            error.textContent = item.error;
+            copy.append(error);
+          }
+          const actions = document.createElement("div");
+          actions.className = "queue-actions";
+          if (item.status === "failed") {
+            const retry = document.createElement("button");
+            retry.type = "button";
+            retry.className = "retry-file";
+            retry.textContent = "重试";
+            retry.disabled = uploadInProgress;
+            retry.addEventListener("click", function () { uploadQueueItems([item]); });
+            actions.append(retry);
+          }
           const remove = document.createElement("button");
           remove.type = "button";
           remove.className = "remove-file";
           remove.setAttribute("aria-label", "移除 " + file.name);
+          remove.disabled = uploadInProgress;
           remove.textContent = "×";
           remove.addEventListener("click", function () {
             selectedFiles.splice(index, 1);
             renderQueue();
+            persistQueue().then(renderQueue);
           });
-          row.append(glyph, copy, remove);
+          actions.append(remove);
+          row.append(glyph, copy, actions);
           queue.append(row);
         });
-        uploadButton.disabled = selectedFiles.length === 0;
-        uploadButton.querySelector("span").textContent = selectedFiles.length
-          ? (isAdmin ? "加入文件库 · " : "发送 ") + selectedFiles.length + " 个文件"
+        const overLimit = totalBytes > maxUploadBytes;
+        queueSummary.classList.toggle("is-over-limit", overLimit);
+        if (!queueReady) {
+          queueSummary.textContent = "正在读取上次待发送文件…";
+        } else if (!selectedFiles.length) {
+          queueSummary.textContent = "";
+        } else {
+          const persistence = queuePersistenceFailed
+            ? " · 浏览器暂存失败，刷新后可能无法恢复"
+            : queuePersisted ? " · 已保存在此浏览器" : " · 正在保存队列…";
+          queueSummary.textContent = pending.length + " 个待发送 · 共 " + bytes(totalBytes) +
+            (completedCount ? " · 已完成 " + completedCount + " 个" : "") +
+            (overLimit ? " · 超过 250 MB，请移除部分文件" : "") + persistence;
+        }
+        queueSummary.hidden = queueReady && selectedFiles.length === 0;
+        uploadButton.disabled = !queueReady || uploadInProgress || pending.length === 0 || overLimit;
+        uploadButton.querySelector("span").textContent = uploadInProgress
+          ? (isAdmin ? "正在加入文件库…" : "正在发送…")
+          : pending.length
+            ? (isAdmin ? "加入文件库 · " : "发送 ") + pending.length + " 个文件"
           : (isAdmin ? "添加到文件库" : "发送文件");
+        fileInput.disabled = uploadInProgress || !queueReady;
+        dropzone.classList.toggle("is-disabled", uploadInProgress || !queueReady);
+        dropzone.setAttribute("aria-disabled", uploadInProgress || !queueReady ? "true" : "false");
       }
       function addFiles(fileListValue) {
+        if (!queueReady) {
+          showToast("正在恢复上次的待发送队列，请稍候");
+          return;
+        }
+        if (uploadInProgress) {
+          showToast("传输完成后再添加文件");
+          return;
+        }
         const incoming = Array.from(fileListValue || []);
+        let skipped = 0;
         incoming.forEach(function (file) {
-          if (!selectedFiles.some(function (current) { return current.name === file.name && current.size === file.size && current.lastModified === file.lastModified; })) {
-            selectedFiles.push(file);
+          const exists = selectedFiles.some(function (current) {
+            return current.file.name === file.name && current.file.size === file.size && current.file.lastModified === file.lastModified;
+          });
+          if (!exists && selectedFiles.length < maxFilesPerBatch) {
+            selectedFiles.push({
+              id: [file.name, file.size, file.lastModified, file.type].join("\u0000"),
+              file: file,
+              status: "pending",
+              error: ""
+            });
+          } else if (!exists) {
+            skipped += 1;
           }
         });
-        if (selectedFiles.length > 40) {
-          selectedFiles = selectedFiles.slice(0, 40);
-          showToast("一次最多选择 40 个文件");
-        }
         renderQueue();
+        if (incoming.length !== skipped) persistQueue().then(renderQueue);
+        if (skipped) showToast("一次最多选择 40 个文件，已忽略 " + skipped + " 个");
+      }
+      function updateFileSelectionControls() {
+        const allVisibleSelected = currentPageFiles.length > 0 && currentPageFiles.every(function (file) {
+          return selectedFileIds.has(file.id);
+        });
+        selectFilePageButton.textContent = allVisibleSelected ? "取消本页选择" : "选择本页";
+        selectedFileCount.textContent = "已选 " + selectedFileIds.size + " 个（最多 100 个）";
+        selectFilePageButton.disabled = currentPageFiles.length === 0 || bulkActionInProgress;
+        clearFileSelectionButton.disabled = selectedFileIds.size === 0 || bulkActionInProgress;
+        downloadSelectedButton.disabled = selectedFileIds.size === 0 || bulkActionInProgress;
+        deleteSelectedButton.disabled = selectedFileIds.size === 0 || bulkActionInProgress;
+      }
+      async function loadStorage() {
+        if (!token || (phoneToken && !deviceKey)) return;
+        try {
+          const response = await fetch(queryUrl("/api/storage"), { cache: "no-store", headers: authHeaders() });
+          const data = await response.json();
+          if (!response.ok) {
+            storageSummary.textContent = data.error || "暂时无法读取存储空间。";
+            return;
+          }
+          storageSummary.textContent = "文件库占用 " + bytes(data.usedBytes) + " · 共 " + data.fileCount +
+            " 个文件 · 磁盘可用 " + bytes(data.diskFreeBytes);
+        } catch (error) {
+          storageSummary.textContent = "暂时无法读取存储空间，请检查网络后刷新。";
+        }
       }
       async function loadFiles() {
         if (!token || (phoneToken && !deviceKey)) return;
+        const requestVersion = ++fileRequestVersion;
+        const params = new URLSearchParams({
+          page: String(filePage),
+          sort: fileSort.value,
+          q: fileSearch.value.trim()
+        });
         try {
-          const response = await fetch(queryUrl("/api/files"), { cache: "no-store", headers: authHeaders() });
-          if (!response.ok) return;
+          const response = await fetch(queryUrl("/api/files") + "&" + params.toString(), {
+            cache: "no-store",
+            headers: authHeaders()
+          });
           const data = await response.json();
+          if (requestVersion !== fileRequestVersion) return;
+          if (!response.ok) {
+            fileListSignature = "";
+            fileList.textContent = data.error || "文件库暂时无法读取。";
+            return;
+          }
           const files = data.files || [];
-          fileCount.textContent = files.length + " 个文件 · 保存在本机 received 文件夹";
-          navFileCount.textContent = String(files.length);
+          filePage = data.page || 1;
+          filePageCount = data.pageCount || 0;
+          fileTotalCount = data.totalCount || 0;
+          currentPageFiles = files;
+          navFileCount.textContent = String(fileTotalCount);
+          fileCount.textContent = fileSearch.value.trim()
+            ? "找到 " + fileTotalCount + " 个匹配文件"
+            : fileTotalCount + " 个文件 · 保存在本机 received 文件夹";
+          filePageLabel.textContent = filePageCount
+            ? "第 " + filePage + " / " + filePageCount + " 页"
+            : "没有匹配文件";
+          filePreviousButton.disabled = filePage <= 1 || filePageCount === 0;
+          fileNextButton.disabled = filePage >= filePageCount || filePageCount === 0;
+          const signature = JSON.stringify([
+            fileSearch.value.trim(), fileSort.value, filePage, fileTotalCount,
+            files.map(function (file) { return [file.id, file.name, file.size, file.modified]; })
+          ]);
+          if (signature === fileListSignature) {
+            updateFileSelectionControls();
+            return;
+          }
+          fileListSignature = signature;
           fileList.replaceChildren();
           if (!files.length) {
             const empty = document.createElement("div");
             empty.className = "empty-state";
-            empty.innerHTML = "文件库暂时为空。<br>手机可在“传文件”上传；电脑也可以添加文件供手机下载。";
+            empty.textContent = fileSearch.value.trim()
+              ? "没有找到匹配的文件，试试更短的关键词。"
+              : "文件库暂时为空。手机可以在“传文件”上传，电脑也可以添加文件供手机下载。";
             fileList.append(empty);
+            updateFileSelectionControls();
             return;
           }
           files.forEach(function (file) {
             const row = document.createElement("div");
             row.className = "received-file";
+            const selection = document.createElement("input");
+            selection.type = "checkbox";
+            selection.className = "file-select";
+            selection.checked = selectedFileIds.has(file.id);
+            selection.setAttribute("aria-label", "选择文件 " + file.name);
+            selection.addEventListener("change", function () {
+              if (selection.checked && !selectedFileIds.has(file.id) && selectedFileIds.size >= maxSelectedLibraryFiles) {
+                selection.checked = false;
+                showToast("一次最多选择 100 个文件");
+                return;
+              }
+              if (selection.checked) selectedFileIds.add(file.id);
+              else selectedFileIds.delete(file.id);
+              updateFileSelectionControls();
+            });
             const glyph = document.createElement("span");
             glyph.className = "file-glyph";
             glyph.innerHTML = iconMarkup();
@@ -943,9 +1314,9 @@
             const size = document.createElement("div");
             size.className = "queue-size";
             const date = new Date(file.modified);
-            size.append(document.createTextNode(bytes(file.size) + " "));
+            size.append(document.createTextNode(bytes(file.size) + " · "));
             const when = document.createElement("span");
-            when.textContent = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            when.textContent = date.toLocaleString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
             size.append(when);
             copy.append(name, size);
             const actions = document.createElement("div");
@@ -999,6 +1370,7 @@
                   }
                   showToast(result.message || "文件内容已替换");
                   loadFiles();
+                  loadStorage();
                 } catch (error) {
                   showToast("替换失败，请检查网络后重试");
                 } finally {
@@ -1028,15 +1400,86 @@
                 showToast(result.error || "删除失败");
                 return;
               }
+              selectedFileIds.delete(file.id);
               showToast("文件已删除");
               loadFiles();
+              loadStorage();
             });
             actions.append(deleteButton);
-            row.append(glyph, copy, actions);
+            row.append(selection, glyph, copy, actions);
             fileList.append(row);
           });
+          updateFileSelectionControls();
         } catch (error) {
-          // The desktop inbox is refreshed separately from the upload interaction.
+          if (requestVersion === fileRequestVersion) {
+            fileListSignature = "";
+            fileList.textContent = "文件库暂时无法读取，请检查网络后刷新。";
+          }
+        }
+      }
+      async function downloadSelectedFiles() {
+        if (bulkActionInProgress || selectedFileIds.size === 0) return;
+        bulkActionInProgress = true;
+        downloadSelectedButton.textContent = "正在打包…";
+        updateFileSelectionControls();
+        try {
+          const response = await fetch(queryUrl("/api/files/download-zip"), {
+            method: "POST",
+            headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+            body: JSON.stringify({ ids: Array.from(selectedFileIds) })
+          });
+          if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.error || "打包下载失败");
+          }
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = "本地收件箱-文件.zip";
+          document.body.append(link);
+          link.click();
+          link.remove();
+          window.setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 30000);
+          showToast("已开始下载 ZIP 文件");
+          loadTransferRecords();
+        } catch (error) {
+          showToast(error.message || "打包下载失败，请稍后重试");
+        } finally {
+          bulkActionInProgress = false;
+          downloadSelectedButton.textContent = "下载 ZIP";
+          updateFileSelectionControls();
+        }
+      }
+      async function deleteSelectedFiles() {
+        if (bulkActionInProgress || selectedFileIds.size === 0) return;
+        const ids = Array.from(selectedFileIds);
+        if (!window.confirm("确定删除选中的 " + ids.length + " 个文件吗？此操作无法撤销。")) return;
+        bulkActionInProgress = true;
+        deleteSelectedButton.textContent = "正在删除…";
+        updateFileSelectionControls();
+        try {
+          const response = await fetch(queryUrl("/api/files/delete-batch"), {
+            method: "POST",
+            headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+            body: JSON.stringify({ ids: ids })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "批量删除失败");
+          (result.deletedIds || []).forEach(function (id) { selectedFileIds.delete(id); });
+          if (result.failed && result.failed.length) {
+            showToast("已删除 " + (result.deletedIds || []).length + " 个，另有 " + result.failed.length + " 个删除失败");
+          } else {
+            showToast("已删除 " + (result.deletedIds || []).length + " 个文件");
+          }
+          loadFiles();
+          loadStorage();
+        } catch (error) {
+          showToast(error.message || "批量删除失败，请刷新文件库后重试");
+        } finally {
+          bulkActionInProgress = false;
+          deleteSelectedButton.textContent = "删除所选";
+          updateFileSelectionControls();
         }
       }
       function openPreview(file) {
@@ -1089,6 +1532,7 @@
       ["dragenter", "dragover"].forEach(function (eventName) {
         dropzone.addEventListener(eventName, function (event) {
           event.preventDefault();
+          if (!queueReady || uploadInProgress) return;
           dropzone.classList.add("is-over");
         });
       });
@@ -1099,22 +1543,101 @@
         });
       });
       dropzone.addEventListener("drop", function (event) { addFiles(event.dataTransfer.files); });
+      fileSearch.addEventListener("input", function () {
+        clearTimeout(fileSearchTimer);
+        fileSearchTimer = window.setTimeout(function () {
+          filePage = 1;
+          loadFiles();
+        }, 240);
+      });
+      fileSort.addEventListener("change", function () {
+        filePage = 1;
+        loadFiles();
+      });
+      filePreviousButton.addEventListener("click", function () {
+        if (filePage > 1) {
+          filePage -= 1;
+          loadFiles();
+        }
+      });
+      fileNextButton.addEventListener("click", function () {
+        if (filePage < filePageCount) {
+          filePage += 1;
+          loadFiles();
+        }
+      });
+      selectFilePageButton.addEventListener("click", function () {
+        const allVisibleSelected = currentPageFiles.length > 0 && currentPageFiles.every(function (file) {
+          return selectedFileIds.has(file.id);
+        });
+        if (allVisibleSelected) {
+          currentPageFiles.forEach(function (file) { selectedFileIds.delete(file.id); });
+        } else {
+          let skipped = false;
+          currentPageFiles.forEach(function (file) {
+            if (selectedFileIds.has(file.id)) return;
+            if (selectedFileIds.size >= maxSelectedLibraryFiles) {
+              skipped = true;
+              return;
+            }
+            selectedFileIds.add(file.id);
+          });
+          if (skipped) showToast("一次最多选择 100 个文件");
+        }
+        fileList.querySelectorAll(".file-select").forEach(function (checkbox, index) {
+          checkbox.checked = Boolean(currentPageFiles[index] && selectedFileIds.has(currentPageFiles[index].id));
+        });
+        updateFileSelectionControls();
+      });
+      clearFileSelectionButton.addEventListener("click", function () {
+        selectedFileIds.clear();
+        fileList.querySelectorAll(".file-select").forEach(function (checkbox) { checkbox.checked = false; });
+        updateFileSelectionControls();
+      });
+      downloadSelectedButton.addEventListener("click", downloadSelectedFiles);
+      deleteSelectedButton.addEventListener("click", deleteSelectedFiles);
+      document.getElementById("storage-refresh").addEventListener("click", loadStorage);
       document.getElementById("history-shortcut").addEventListener("click", function () { setView("history"); });
       document.getElementById("history-refresh").addEventListener("click", loadTransferRecords);
-      uploadButton.addEventListener("click", function () {
-        if (!selectedFiles.length || uploadButton.disabled) return;
-        const totalBytes = selectedFiles.reduce(function (total, file) { return total + file.size; }, 0);
-        if (totalBytes > 250 * 1024 * 1024) {
-          showToast("这批文件超过 250 MB，请分批发送");
+      function uploadSingleFile(item, onProgress) {
+        return new Promise(function (resolve, reject) {
+          const form = new FormData();
+          form.append("files", item.file, item.file.name);
+          const request = new XMLHttpRequest();
+          request.open("POST", queryUrl("/api/upload"));
+          if (deviceKey) request.setRequestHeader("X-Device-Key", deviceKey);
+          request.upload.addEventListener("progress", function (event) {
+            if (event.lengthComputable) onProgress(item.file.size * event.loaded / event.total);
+          });
+          request.addEventListener("load", function () {
+            let result = {};
+            try { result = JSON.parse(request.responseText); } catch (error) {}
+            if (request.status >= 200 && request.status < 300) resolve(result);
+            else reject(new Error(result.error || "上传失败，请检查网络后重试。"));
+          });
+          request.addEventListener("error", function () {
+            reject(new Error("连接中断。请确认手机和电脑仍在同一网络，再试一次。"));
+          });
+          request.addEventListener("abort", function () { reject(new Error("上传已取消。")); });
+          request.send(form);
+        });
+      }
+      async function uploadQueueItems(requestedItems) {
+        if (!queueReady || uploadInProgress) return;
+        const items = requestedItems.filter(function (item) {
+          return selectedFiles.includes(item) && item.status !== "completed";
+        });
+        if (!items.length) return;
+        const totalBytes = items.reduce(function (total, item) { return total + item.file.size; }, 0);
+        if (totalBytes > maxUploadBytes) {
+          showToast("这批待发送文件超过 250 MB，请分批发送");
           return;
         }
-        const form = new FormData();
-        selectedFiles.forEach(function (file) { form.append("files", file, file.name); });
-        uploadButton.disabled = true;
+        uploadInProgress = true;
         localTransfer = {
           direction: isAdmin ? "pc_to_phone" : "phone_to_pc",
           label: isAdmin ? "准备给手机的文件" : "",
-          name: selectedFiles.length === 1 ? selectedFiles[0].name : selectedFiles.length + " 个文件",
+          name: items.length === 1 ? items[0].file.name : items.length + " 个文件",
           size: totalBytes,
           transferred: 0,
           percent: 0,
@@ -1123,56 +1646,62 @@
           createdAt: new Date().toISOString()
         };
         renderTransferStatus();
-        const request = new XMLHttpRequest();
-        request.open("POST", queryUrl("/api/upload"));
-        if (deviceKey) request.setRequestHeader("X-Device-Key", deviceKey);
-        request.upload.addEventListener("progress", function (event) {
-          if (!event.lengthComputable) return;
-          const percent = Math.round(event.loaded / event.total * 100);
-          localTransfer.percent = percent;
-          localTransfer.transferred = Math.min(totalBytes, Math.round(totalBytes * percent / 100));
-          renderTransferStatus();
-        });
-        request.addEventListener("load", function () {
-          let result = {};
-          try { result = JSON.parse(request.responseText); } catch (error) {}
-          if (request.status >= 200 && request.status < 300) {
-            localTransfer.status = isAdmin ? "ready" : "completed";
-            localTransfer.label = isAdmin ? "已加入文件库" : "";
-            localTransfer.detail = isAdmin ? "手机连接后可在文件库预览或下载。" : "";
-            localTransfer.percent = 100;
-            localTransfer.transferred = totalBytes;
-            renderTransferStatus();
-            showToast(isAdmin ? "已加入文件库，手机可下载" : "已发送到电脑");
-            selectedFiles = [];
-            renderQueue();
-            loadFiles();
-            loadTransferRecords();
-          } else {
-            localTransfer.status = "interrupted";
-            localTransfer.percent = 0;
-            localTransfer.error = result.error || "上传失败，请检查网络后重试。";
-            renderTransferStatus();
-            showToast(localTransfer.error);
-            uploadButton.disabled = false;
+        renderQueue();
+        let completedBytes = 0;
+        for (const item of items) {
+          item.status = "uploading";
+          item.error = "";
+          await persistQueue();
+          renderQueue();
+          try {
+            await uploadSingleFile(item, function (currentBytes) {
+              localTransfer.transferred = Math.min(totalBytes, completedBytes + currentBytes);
+              localTransfer.percent = totalBytes ? Math.round(localTransfer.transferred / totalBytes * 100) : 100;
+              renderTransferStatus();
+            });
+            item.status = "completed";
+            completedBytes += item.file.size;
+            localTransfer.transferred = completedBytes;
+            localTransfer.percent = totalBytes ? Math.round(completedBytes / totalBytes * 100) : 100;
+          } catch (error) {
+            item.status = "failed";
+            item.error = error.message || "上传失败，请重试。";
           }
-        });
-        request.addEventListener("error", function () {
-          localTransfer.status = "interrupted";
-          localTransfer.error = "连接中断。请确认手机和电脑仍在同一网络，再试一次。";
+          await persistQueue();
+          renderQueue();
           renderTransferStatus();
-          showToast(localTransfer.error);
-          uploadButton.disabled = false;
-        });
-        request.addEventListener("abort", function () {
+        }
+        uploadInProgress = false;
+        const remainingItems = selectedFiles.filter(function (item) { return item.status !== "completed"; });
+        if (!remainingItems.length) {
+          localTransfer.status = isAdmin ? "ready" : "completed";
+          localTransfer.label = isAdmin ? "已加入文件库" : "";
+          localTransfer.detail = isAdmin ? "手机连接后可在文件库预览或下载。" : "";
+          localTransfer.transferred = totalBytes;
+          localTransfer.percent = 100;
+          selectedFiles = [];
+          await persistQueue();
+          showToast(isAdmin ? "已加入文件库，手机可下载" : "已发送到电脑");
+        } else {
           localTransfer.status = "interrupted";
-          localTransfer.error = "上传已取消。";
-          renderTransferStatus();
-          showToast(localTransfer.error);
-          uploadButton.disabled = false;
-        });
-        request.send(form);
+          localTransfer.error = "部分文件尚未完成，可逐项重试或继续发送。";
+          const failedCount = selectedFiles.filter(function (item) { return item.status === "failed"; }).length;
+          showToast(failedCount
+            ? failedCount + " 个文件失败，可点文件旁的“重试”"
+            : remainingItems.length + " 个文件仍待发送，可继续发送");
+        }
+        renderTransferStatus();
+        renderQueue();
+        loadFiles();
+        loadStorage();
+        loadTransferRecords();
+      }
+      uploadButton.addEventListener("click", function () {
+        if (uploadButton.disabled) return;
+        uploadQueueItems(selectedFiles.filter(function (item) { return item.status !== "completed"; }));
       });
+      renderQueue();
+      restoreQueue();
 
       function renderNetworkAddresses(addresses, activeAddress) {
         if (!networkSelect) return;
@@ -1352,9 +1881,13 @@
           }
         });
         loadFiles();
+        loadStorage();
         loadTransferRecords();
         refreshDevices();
-        window.setInterval(loadFiles, 7000);
+        window.setInterval(function () {
+          if (body.dataset.view === "files") loadFiles();
+        }, 7000);
+        window.setInterval(loadStorage, 30000);
         window.setInterval(loadTransferRecords, 2000);
         window.setInterval(refreshDevices, 5000);
       } else {

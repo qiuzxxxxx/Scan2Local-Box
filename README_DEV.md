@@ -24,7 +24,7 @@ python manage.py runserver 0.0.0.0:8765 --noreload
 1. 服务启动时，`localdrop/settings.py` 生成随机 `TRANSFER_TOKEN`。电脑页面将局域网地址和此凭证组成分享地址，`receiver/qr.py` 将地址编码为 SVG 二维码。
 2. 扫码设备携带二维码凭证访问网页，并向 `/api/pair` 发起配对请求。服务核验凭证后生成随机设备密钥，只将该密钥的 SHA-256 摘要存入 `Device.key_hash`；原始密钥由浏览器保存在 `localStorage`。
 3. 后续请求通过 `X-Device-Key` 请求头提交设备密钥。服务计算摘要并查找有效设备。电脑本机页面则通过 loopback 地址（`127.0.0.1` 或 `::1`）识别为管理端。
-4. 上传使用浏览器 `XMLHttpRequest` 和 `FormData` 向 `/api/upload` 发送 multipart HTTP 请求。Django 分块读取文件并写入 `received/`，随后将文件元数据写入 SQLite。前端使用浏览器上传进度事件展示进度。
+4. 上传使用浏览器 `XMLHttpRequest` 和 `FormData` 向 `/api/upload` 逐个发送 multipart HTTP 请求，并用 IndexedDB 在当前浏览器本地保存待发送文件及逐项状态。Django 分块读取文件并写入 `received/`，随后将文件元数据写入 SQLite；失败项目可单独重试。
 5. 下载由 `/download/<stored_name>` 提供。设备下载会以 `StreamingHttpResponse` 分块读取，并更新传输记录；本机管理端下载使用 `FileResponse`。
 
 文件传输直接走手机与电脑之间的局域网 HTTP 请求，没有云端中转、WebSocket 或外部存储服务。当前实现不启用 TLS；二维码凭证和设备密钥用于连接授权，不对 HTTP 流量加密。
@@ -51,7 +51,10 @@ python manage.py runserver 0.0.0.0:8765 --noreload
 - `POST /api/pair`：凭二维码凭证配对设备并返回设备密钥。
 - `POST /api/heartbeat`：更新设备最近在线时间。
 - `POST /api/upload`：上传文件。
-- `GET /api/files`、`GET /api/transfers`：获取文件列表和传输记录。
+- `GET /api/files`：按关键词和排序方式分页获取文件列表。
+- `GET /api/storage`：获取文件库占用和磁盘空间信息。
+- `POST /api/files/download-zip`、`POST /api/files/delete-batch`：打包下载或批量删除文件。
+- `GET /api/transfers`：获取传输记录。
 - `GET /download/<stored_name>`、`GET /preview/<stored_name>`：下载或预览文件。
 - `POST /api/files/<id>/rename`、`replace`、`delete`：管理已接收文件。
 - `GET /api/devices`、`POST /api/devices/<id>/revoke`：查看及撤销设备；只允许本机管理端访问。

@@ -5,8 +5,10 @@ import mimetypes
 import os
 import re
 import secrets
+import shutil
 import socket
 import subprocess
+import tempfile
 import time
 import urllib.parse
 import zipfile
@@ -16,11 +18,12 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Sum
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from .models import Device, TransferRecord, UploadRecord
 from .qr import svg
@@ -190,8 +193,30 @@ def refresh_link(request):
 def files(request):
     if not allowed_client(request):
         return JsonResponse({"error": "请通过电脑上的二维码连接此设备。"}, status=403)
+    query = request.GET.get("q", "").strip()[:180]
+    sort = request.GET.get("sort", "newest")
+    ordering = {
+        "newest": ("-uploaded_at", "-id"),
+        "oldest": ("uploaded_at", "id"),
+        "name-asc": ("original_name", "-id"),
+        "name-desc": ("-original_name", "-id"),
+        "largest": ("-file_size", "-id"),
+        "smallest": ("file_size", "-id"),
+    }.get(sort, ("-uploaded_at", "-id"))
+    try:
+        page = max(int(request.GET.get("page", "1")), 1)
+    except ValueError:
+        page = 1
+    page_size = 100
+    records = UploadRecord.objects.all()
+    if query:
+        records = records.filter(original_name__icontains=query)
+    total_count = records.count()
+    page_count = (total_count + page_size - 1) // page_size
+    page = min(page, max(page_count, 1))
+    records = records.order_by(*ordering)[(page - 1) * page_size:page * page_size]
     result = []
-    for record in UploadRecord.objects.all()[:100]:
+    for record in records:
         extension = Path(record.original_name).suffix.lower()
         uploaded = timezone.localtime(record.uploaded_at)
         preview_kind = (
@@ -210,7 +235,160 @@ def files(request):
             "previewable": extension in PREVIEW_EXTENSIONS,
             "previewKind": preview_kind,
         })
-    return JsonResponse({"files": result})
+    return JsonResponse({
+        "files": result,
+        "totalCount": total_count,
+        "page": page,
+        "pageSize": page_size,
+        "pageCount": page_count,
+    })
+
+
+@require_GET
+def storage_status(request):
+    if not allowed_client(request):
+        return JsonResponse({"error": "请先连接电脑后查看存储空间。"}, status=403)
+    settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    usage = shutil.disk_usage(settings.UPLOAD_DIR)
+    total = UploadRecord.objects.aggregate(total=Sum("file_size"))["total"] or 0
+    return JsonResponse({
+        "fileCount": UploadRecord.objects.count(),
+        "usedBytes": total,
+        "diskFreeBytes": usage.free,
+        "diskTotalBytes": usage.total,
+    })
+
+
+def requested_file_ids(request):
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None, JsonResponse({"error": "请求格式不正确。"}, status=400)
+    raw_ids = data.get("ids") if isinstance(data, dict) else None
+    if not isinstance(raw_ids, list) or not raw_ids:
+        return None, JsonResponse({"error": "请选择要处理的文件。"}, status=400)
+    if any(not isinstance(item, int) or isinstance(item, bool) or item <= 0 for item in raw_ids):
+        return None, JsonResponse({"error": "文件列表中包含无效项目。"}, status=400)
+    ids = list(dict.fromkeys(raw_ids))
+    if len(ids) > 100:
+        return None, JsonResponse({"error": "一次最多处理 100 个文件。"}, status=400)
+    return ids, None
+
+
+@csrf_exempt
+@require_POST
+def download_files_zip(request):
+    if not allowed_client(request):
+        return JsonResponse({"error": "请先连接已授权设备。"}, status=403)
+    ids, error_response = requested_file_ids(request)
+    if error_response:
+        return error_response
+    records_by_id = {record.id: record for record in UploadRecord.objects.filter(id__in=ids)}
+    if len(records_by_id) != len(ids):
+        return JsonResponse({"error": "部分文件已不存在，请刷新文件库后重试。"}, status=404)
+    records = [records_by_id[file_id] for file_id in ids]
+    paths = []
+    for record in records:
+        if Path(record.stored_name).name != record.stored_name:
+            return JsonResponse({"error": "文件记录无效，无法打包下载。"}, status=400)
+        target = settings.UPLOAD_DIR / record.stored_name
+        if not target.is_file():
+            return JsonResponse({"error": "文件“{}”已不在磁盘上。".format(record.original_name)}, status=404)
+        paths.append(target)
+
+    estimated_archive_size = sum(record.file_size for record in records) + len(records) * 256 + 65536
+    temporary_directory = tempfile.gettempdir()
+    if estimated_archive_size > shutil.disk_usage(temporary_directory).free:
+        return JsonResponse({"error": "临时磁盘空间不足，无法创建 ZIP 文件。"}, status=507)
+    archive_file = tempfile.SpooledTemporaryFile(
+        max_size=16 * 1024 * 1024, mode="w+b", dir=temporary_directory
+    )
+    used_names = set()
+    try:
+        with zipfile.ZipFile(archive_file, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=1) as archive:
+            for record, target in zip(records, paths):
+                archive_name = record.original_name
+                if archive_name.casefold() in used_names:
+                    stem, suffix = os.path.splitext(archive_name)
+                    index = 2
+                    while "{} ({}){}".format(stem, index, suffix).casefold() in used_names:
+                        index += 1
+                    archive_name = "{} ({}){}".format(stem, index, suffix)
+                used_names.add(archive_name.casefold())
+                archive.write(target, arcname=archive_name)
+        archive_file.seek(0, os.SEEK_END)
+        archive_size = archive_file.tell()
+        archive_file.seek(0)
+    except OSError:
+        archive_file.close()
+        return JsonResponse({"error": "打包失败，请检查磁盘空间和文件状态。"}, status=507)
+
+    archive_name = "本地收件箱-{}个文件.zip".format(len(records))
+    device = device_for(request, update=True)
+    if device:
+        transfer = TransferRecord.objects.create(
+            direction=TransferRecord.PC_TO_PHONE,
+            status=TransferRecord.TRANSFERRING,
+            file_name=archive_name,
+            file_size=archive_size,
+            device=device,
+            device_name=device.name,
+        )
+
+        def stream_archive():
+            transferred = 0
+            completed = False
+            try:
+                while True:
+                    chunk = archive_file.read(64 * 1024)
+                    if not chunk:
+                        break
+                    yield chunk
+                    transferred += len(chunk)
+                    if transferred % (1024 * 1024) < len(chunk):
+                        TransferRecord.objects.filter(pk=transfer.pk).update(transferred_size=transferred)
+                completed = True
+            finally:
+                archive_file.close()
+                TransferRecord.objects.filter(pk=transfer.pk).update(
+                    transferred_size=transferred,
+                    status=TransferRecord.COMPLETED if completed else TransferRecord.INTERRUPTED,
+                )
+
+        response = StreamingHttpResponse(stream_archive(), content_type="application/zip")
+        response._resource_closers.append(archive_file.close)
+        response["Content-Length"] = str(archive_size)
+    else:
+        response = FileResponse(archive_file, content_type="application/zip")
+    response["Content-Disposition"] = "attachment; filename*=UTF-8''" + urllib.parse.quote(archive_name)
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@csrf_exempt
+@require_POST
+def delete_files_batch(request):
+    if not allowed_client(request):
+        return JsonResponse({"error": "请先连接已授权设备。"}, status=403)
+    ids, error_response = requested_file_ids(request)
+    if error_response:
+        return error_response
+    records_by_id = {record.id: record for record in UploadRecord.objects.filter(id__in=ids)}
+    if len(records_by_id) != len(ids):
+        return JsonResponse({"error": "部分文件已不存在，请刷新文件库后重试。"}, status=404)
+    deleted_ids = []
+    failed = []
+    for file_id in ids:
+        record = records_by_id[file_id]
+        target = settings.UPLOAD_DIR / record.stored_name
+        try:
+            if target.exists():
+                target.unlink()
+            record.delete()
+            deleted_ids.append(file_id)
+        except OSError:
+            failed.append({"id": file_id, "name": record.original_name})
+    return JsonResponse({"deletedIds": deleted_ids, "failed": failed})
 
 
 def transfer_history(request):
